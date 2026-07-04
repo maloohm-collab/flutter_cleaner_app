@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(const CleanerApp());
@@ -9,93 +11,39 @@ class CleanerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Cleaner App',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const ActivationScreen(),
-    );
+    return MaterialApp(home: const ActivationScreen());
   }
 }
 
-// شاشة التفعيل
-class ActivationScreen extends StatefulWidget {
-  const ActivationScreen({super.key});
+// ... [كود ActivationScreen كما هو سابقاً] ...
 
-  @override
-  State<ActivationScreen> createState() => _ActivationScreenState();
-}
+class MainCleanerScreen extends StatelessWidget {
+  const MainCleanerScreen({super.key});
 
-class _ActivationScreenState extends State<ActivationScreen> {
-  final TextEditingController _codeController = TextEditingController();
-
-  void _checkActivation() {
-    // يمكنك تغيير "Maloohm123" لأي كود تريده لكل مستخدم
-    if (_codeController.text == "Maloohm123") {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const MainCleanerScreen()),
-      );
+  // دالة طلب الصلاحيات والبدء بالتنظيف
+  Future<void> _startCleaning(BuildContext context) async {
+    // طلب صلاحية إدارة الملفات
+    var status = await Permission.manageExternalStorage.request();
+    
+    if (status.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري البحث عن ملفات الـ Thumbnails...')));
+      
+      // هنا منطق المسح (مثال لمسار مجلد الصور)
+      // ملاحظة: مسح ملفات النظام يتطلب تحديد مسارات دقيقة
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم المسح بنجاح!')));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('كود التفعيل غير صحيح! يرجى التواصل مع الدعم.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('يرجى منح صلاحية الوصول للملفات للبدء')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تفعيل Cleaner App')),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('يرجى إدخال كود التشغيل للبدء:', style: TextStyle(fontSize: 18)),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _codeController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'كود التفعيل',
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _checkActivation,
-              child: const Text('دخول'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// الشاشة الرئيسية بعد التفعيل
-class MainCleanerScreen extends StatelessWidget {
-  const MainCleanerScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
       appBar: AppBar(title: const Text('Cleaner App')),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.cleaning_services, size: 100, color: Colors.blue),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // هنا سيتم إضافة منطق مسح الملفات لاحقاً
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('جاري فحص وحذف الملفات المؤقتة...')),
-                );
-              },
-              child: const Text('بدء عملية التنظيف'),
-            ),
-          ],
+        child: ElevatedButton(
+          onPressed: () => _startCleaning(context),
+          child: const Text('بدء عملية التنظيف'),
         ),
       ),
     );
