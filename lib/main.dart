@@ -75,7 +75,7 @@ class _MainCleanerScreenState extends State<MainCleanerScreen> {
       body: _isScanning 
         ? const Center(child: CircularProgressIndicator())
         : _junkFiles.isEmpty
-          ? Center(child: ElevatedButton(onPressed: _scanFiles, child: const Text("ابدأ الفحص الشامل")))
+          ? Center(child: ElevatedButton(onPressed: _scanSystem, child: const Text("ابدأ الفحص الشامل")))
           : Column(
               children: [
                 ElevatedButton(onPressed: _deleteAll, child: const Text("حذف الكل (Bulk Delete)")),
