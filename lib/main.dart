@@ -2,133 +2,116 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-void main() {
-  runApp(const CleanerApp());
-}
+void main() => runApp(const CleanerApp());
 
 class CleanerApp extends StatelessWidget {
   const CleanerApp({super.key});
-
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0A0E21),
-        primaryColor: const Color(0xFF00D2FF), // لون النيون الأزرق
-      ),
-      home: const ActivationScreen(),
-    );
-  }
-}
-
-class ActivationScreen extends StatefulWidget {
-  const ActivationScreen({super.key});
-
-  @override
-  State<ActivationScreen> createState() => _ActivationScreenState();
-}
-
-class _ActivationScreenState extends State<ActivationScreen> {
-  final TextEditingController _codeController = TextEditingController();
-
-  void _checkActivation() {
-    if (_codeController.text == "AI2026") { // كود مستقبلي
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainCleanerScreen()));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.rocket_launch, size: 80, color: Color(0xFF00D2FF)),
-              const SizedBox(height: 20),
-              const Text("AI SYSTEM ACCESS", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-              const SizedBox(height: 30),
-              TextField(
-                controller: _codeController,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white10,
-                  hintText: "Enter Neural Key",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _checkActivation,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00D2FF)),
-                child: const Text("INITIALIZE SYSTEM", style: TextStyle(color: Colors.black)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false, 
+    theme: ThemeData.dark(),
+    home: const MainCleanerScreen()
+  );
 }
 
 class MainCleanerScreen extends StatefulWidget {
   const MainCleanerScreen({super.key});
-
   @override
   State<MainCleanerScreen> createState() => _MainCleanerScreenState();
 }
 
 class _MainCleanerScreenState extends State<MainCleanerScreen> {
+  List<File> _junkFiles = [];
   bool _isScanning = false;
 
-  Future<void> _runAIProcess() async {
+  // دالة البحث الذكي عن مجلدات thumbnails
+  Future<void> _scanSystem() async {
     setState(() => _isScanning = true);
-    await Future.delayed(const Duration(seconds: 3)); // محاكاة تحليل الذكاء الاصطناعي
-    setState(() => _isScanning = false);
+    var status = await Permission.manageExternalStorage.request();
     
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("SYSTEM OPTIMIZED: 2.4GB Freed by AI"),
-        backgroundColor: Color(0xFF00D2FF),
-      ));
+    if (status.isGranted) {
+      List<File> foundFiles = [];
+      // البحث في وحدة التخزين الرئيسية
+      Directory root = Directory('/storage/emulated/0/');
+      
+      // دالة استكشاف المجلدات بشكل متكرر (Recursive)
+      void findThumbnails(Directory dir) {
+        try {
+          List<FileSystemEntity> entities = dir.listSync();
+          for (var entity in entities) {
+            if (entity is Directory) {
+              if (entity.path.split('/').last.toLowerCase().contains('thumbnails')) {
+                foundFiles.addAll(entity.listSync().whereType<File>());
+              } else {
+                findThumbnails(entity); // البحث في المجلدات الفرعية
+              }
+            }
+          }
+        } catch (e) { /* تجاهل المجلدات المحمية */ }
+      }
+      
+      findThumbnails(root);
+      setState(() => _junkFiles = foundFiles);
     }
+    setState(() => _isScanning = false);
+  }
+
+  // حذف ملف واحد
+  Future<void> _deleteFile(File file) async {
+    await file.delete();
+    setState(() => _junkFiles.remove(file));
+  }
+
+  // حذف الكل
+  void _deleteAll() {
+    for (var file in _junkFiles) { file.delete(); }
+    setState(() => _junkFiles.clear());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(seconds: 1),
-              height: _isScanning ? 150 : 100,
-              width: _isScanning ? 150 : 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _isScanning ? Colors.blueAccent.withOpacity(0.3) : Colors.transparent,
-                border: Border.all(color: const Color(0xFF00D2FF), width: 3),
-              ),
-              child: const Icon(Icons.memory, size: 50, color: Color(0xFF00D2FF)),
+      appBar: AppBar(title: const Text("AI SCANNER")),
+      body: _isScanning 
+        ? const Center(child: CircularProgressIndicator())
+        : _junkFiles.isEmpty
+          ? Center(child: ElevatedButton(onPressed: _scanFiles, child: const Text("ابدأ الفحص الشامل")))
+          : Column(
+              children: [
+                ElevatedButton(onPressed: _deleteAll, child: const Text("حذف الكل (Bulk Delete)")),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _junkFiles.length,
+                    itemBuilder: (context, index) {
+                      final file = _junkFiles[index];
+                      return ListTile(
+                        title: Text(file.path.split('/').last),
+                        subtitle: Text(file.path, style: const TextStyle(fontSize: 10)),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _confirmDelete(file),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: _runAIProcess,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                backgroundColor: const Color(0xFF00D2FF),
-              ),
-              child: _isScanning 
-                ? const CircularProgressIndicator(color: Colors.black) 
-                : const Text("ENGAGE AI CLEANER", style: TextStyle(color: Colors.black, fontSize: 18)),
-            ),
-          ],
-        ),
+    );
+  }
+
+  void _confirmDelete(File file) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("تأكيد الحذف"),
+        content: const Text("هل تريد إزالة هذا الملف؟"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("إلغاء")),
+          TextButton(onPressed: () { _deleteFile(file); Navigator.pop(context); }, child: const Text("حذف")),
+        ],
       ),
     );
   }
 }
+
