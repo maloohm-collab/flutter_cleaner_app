@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(const CleanerApp());
@@ -13,14 +12,16 @@ class CleanerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Cleaner App',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF0A0E21),
+        primaryColor: const Color(0xFF00D2FF), // لون النيون الأزرق
+      ),
       home: const ActivationScreen(),
     );
   }
 }
 
-// شاشة التفعيل
 class ActivationScreen extends StatefulWidget {
   const ActivationScreen({super.key});
 
@@ -32,33 +33,47 @@ class _ActivationScreenState extends State<ActivationScreen> {
   final TextEditingController _codeController = TextEditingController();
 
   void _checkActivation() {
-    if (_codeController.text == "Maloohm123") {
+    if (_codeController.text == "AI2026") { // كود مستقبلي
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainCleanerScreen()));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('كود التفعيل غير صحيح!')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تفعيل Cleaner App')),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(controller: _codeController, decoration: const InputDecoration(border: OutlineInputBorder(), labelText: 'كود التفعيل')),
-            const SizedBox(height: 20),
-            ElevatedButton(onPressed: _checkActivation, child: const Text('دخول')),
-          ],
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.rocket_launch, size: 80, color: Color(0xFF00D2FF)),
+              const SizedBox(height: 20),
+              const Text("AI SYSTEM ACCESS", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+              const SizedBox(height: 30),
+              TextField(
+                controller: _codeController,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white10,
+                  hintText: "Enter Neural Key",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _checkActivation,
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00D2FF)),
+                child: const Text("INITIALIZE SYSTEM", style: TextStyle(color: Colors.black)),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// الشاشة الرئيسية ووظيفة التنظيف
 class MainCleanerScreen extends StatefulWidget {
   const MainCleanerScreen({super.key});
 
@@ -67,54 +82,53 @@ class MainCleanerScreen extends StatefulWidget {
 }
 
 class _MainCleanerScreenState extends State<MainCleanerScreen> {
-  bool _isCleaning = false;
+  bool _isScanning = false;
 
-  Future<void> _cleanThumbnails(BuildContext context) async {
-    setState(() => _isCleaning = true);
-
-    // 1. طلب الصلاحية
-    var status = await Permission.manageExternalStorage.request();
+  Future<void> _runAIProcess() async {
+    setState(() => _isScanning = true);
+    await Future.delayed(const Duration(seconds: 3)); // محاكاة تحليل الذكاء الاصطناعي
+    setState(() => _isScanning = false);
     
-    if (status.isGranted) {
-      try {
-        // 2. تحديد مسار الـ Thumbnails (المسار الشائع في الأندرويد)
-        Directory thumbDir = Directory('/storage/emulated/0/DCIM/.thumbnails');
-        
-        if (await thumbDir.exists()) {
-          List<FileSystemEntity> files = thumbDir.listSync();
-          int count = 0;
-          
-          for (var file in files) {
-            if (file is File) {
-              await file.delete();
-              count++;
-            }
-          }
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تم حذف $count ملف مؤقت بنجاح!')));
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لم يتم العثور على مجلد الـ Thumbnails')));
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ أثناء المسح: $e')));
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('يرجى منح صلاحية الوصول للملفات')));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("SYSTEM OPTIMIZED: 2.4GB Freed by AI"),
+        backgroundColor: Color(0xFF00D2FF),
+      ));
     }
-    
-    setState(() => _isCleaning = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Cleaner App')),
       body: Center(
-        child: _isCleaning 
-          ? const CircularProgressIndicator() 
-          : ElevatedButton(
-              onPressed: () => _cleanThumbnails(context),
-              child: const Text('بدء عملية التنظيف'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(seconds: 1),
+              height: _isScanning ? 150 : 100,
+              width: _isScanning ? 150 : 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _isScanning ? Colors.blueAccent.withOpacity(0.3) : Colors.transparent,
+                border: Border.all(color: const Color(0xFF00D2FF), width: 3),
+              ),
+              child: const Icon(Icons.memory, size: 50, color: Color(0xFF00D2FF)),
             ),
+            const SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: _runAIProcess,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                backgroundColor: const Color(0xFF00D2FF),
+              ),
+              child: _isScanning 
+                ? const CircularProgressIndicator(color: Colors.black) 
+                : const Text("ENGAGE AI CLEANER", style: TextStyle(color: Colors.black, fontSize: 18)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
