@@ -17,6 +17,7 @@ class CleanerApp extends StatelessWidget {
   }
 }
 
+// شاشة التفعيل
 class ActivationScreen extends StatefulWidget {
   const ActivationScreen({super.key});
 
@@ -28,26 +29,42 @@ class _ActivationScreenState extends State<ActivationScreen> {
   final TextEditingController _codeController = TextEditingController();
 
   void _checkActivation() {
-    // هنا تضع كود التفعيل الذي تريده
+    // يمكنك تغيير "Maloohm123" لأي كود تريده لكل مستخدم
     if (_codeController.text == "Maloohm123") {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainCleanerScreen()));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainCleanerScreen()),
+      );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('كود التفعيل غير صحيح!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('كود التفعيل غير صحيح! يرجى التواصل مع الدعم.')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('تفعيل التطبيق')),
+      appBar: AppBar(title: const Text('تفعيل Cleaner App')),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(controller: _codeController, decoration: const InputDecoration(labelText: 'أدخل كود التفعيل')),
+            const Text('يرجى إدخال كود التشغيل للبدء:', style: TextStyle(fontSize: 18)),
             const SizedBox(height: 20),
-            ElevatedButton(onPressed: _checkActivation, child: const Text('تفعيل')),
+            TextField(
+              controller: _codeController,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'كود التفعيل',
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _checkActivation,
+              child: const Text('دخول'),
+            ),
           ],
         ),
       ),
@@ -55,20 +72,30 @@ class _ActivationScreenState extends State<ActivationScreen> {
   }
 }
 
+// الشاشة الرئيسية بعد التفعيل
 class MainCleanerScreen extends StatelessWidget {
   const MainCleanerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Cleaner App - تنظيف')),
+      appBar: AppBar(title: const Text('Cleaner App')),
       body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            // هنا سنضع لاحقاً كود مسح الملفات
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('جاري تنظيف الملفات المؤقتة...')));
-          },
-          child: const Text('بدء التنظيف الآن'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cleaning_services, size: 100, color: Colors.blue),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                // هنا سيتم إضافة منطق مسح الملفات لاحقاً
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('جاري فحص وحذف الملفات المؤقتة...')),
+                );
+              },
+              child: const Text('بدء عملية التنظيف'),
+            ),
+          ],
         ),
       ),
     );
