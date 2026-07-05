@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "com.example.flutter_cleaner_app"
     compileSdk = 35
-    
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -35,21 +35,4 @@ kotlin {
 
 flutter {
     source = "../.."
-}
-
-// الحل القوي: إجبار جميع المكتبات على التوافق مع SDK 35 وتجاوز فحص الميتا-داتا
-configurations.all {
-    resolutionStrategy {
-        eachDependency {
-            // رفع إصدارات المكتبات التي كانت تسبب خطأ التوافق
-            if (requested.group == "androidx.lifecycle") {
-                useVersion("2.8.0")
-            }
-        }
-    }
-}
-
-// تعطيل مهام فحص الـ AAR Metadata التي كانت تمنع البناء
-tasks.matching { it.name.startsWith("check") && it.name.endsWith("AarMetadata") }.configureEach {
-    enabled = false
 }
