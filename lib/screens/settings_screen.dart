@@ -30,7 +30,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
@@ -46,10 +45,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 16),
 
-          // تجميع خيارات التحكم داخل حاوية موحدة بتصميم زجاجي فخم لتوحيد الهوية البصرية
+          // الاعتماد على ألوان الشاشات الأخرى لضمان عدم حدوث خطأ استدعاء
           Container(
             decoration: BoxDecoration(
-              color: AppColors.cardBackground.withOpacity(0.6),
+              color: Colors.white.withOpacity(0.05),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: Colors.white.withOpacity(0.05)),
             ),
@@ -125,10 +124,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 16),
 
-          // تجميع معلومات التطبيق والمطور داخل حاوية حداثية متناسقة
           Container(
             decoration: BoxDecoration(
-              color: AppColors.cardBackground.withOpacity(0.4),
+              color: Colors.white.withOpacity(0.02),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: Colors.white.withOpacity(0.03)),
             ),
@@ -141,7 +139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
                   ),
                   subtitle: const Text(
-                    "AI Optimizer Premium v1.0.0", // توحيد الإصدار ليتطابق مع شاشة الوصول
+                    "AI Optimizer Premium v1.0.0",
                     style: TextStyle(color: Colors.white54, fontSize: 13),
                   ),
                 ),
@@ -168,3 +166,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
+
