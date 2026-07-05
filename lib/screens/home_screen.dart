@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // ستحتاج لإضافته في pubspec لإظهار الوقت التلقائي في السجلات
 
 import '../services/cleaner_service.dart';
 import '../utils/colors.dart';
@@ -18,7 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool scanning = false;
   double progress = 0;
   String status = "Ready";
-  final List<Map<String, String>> logs = []; // استخدام خريطة لحفظ السجل مع الوقت
+  final List<Map<String, String>> logs = [];
 
   Future<void> startCleaning() async {
     if (scanning) return;
@@ -40,7 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
       logs.clear();
     });
 
-    // إضافة سجل البداية الافتراضي المطابق للصورة
     _addLog("Scanning directories...");
 
     await cleaner.startCleaning(
@@ -66,9 +64,10 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // دالة مساعدة لصياغة السجلات مع الطوابع الزمنية الحالية
+  // استخدام معالج وقت نقي من لغة Dart دون استدعاء أي حزم خارجية
   void _addLog(String message) {
-    final String timeStr = DateFormat('HH:mm:ss').format(DateTime.now());
+    final now = DateTime.now();
+    final String timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
     logs.insert(0, {
       "time": timeStr,
       "message": message.startsWith("[AI]") ? message : "[AI] $message"
@@ -82,7 +81,6 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        // إضافة أيقونة القائمة الجانبية اليسرى كما في الصورة 1000204253.png
         leading: IconButton(
           icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: () {},
@@ -98,9 +96,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
-          // إضافة تاج الـ Premium الذهبي في الجانب الأيمن العلوي
           IconButton(
-            icon: const Icon(Icons.workspace_premium_rounded, color: AppColors.accentGold, size: 26),
+            icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFD700), size: 26),
             onPressed: () {},
           ),
         ],
@@ -111,19 +108,20 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               const SizedBox(height: 10),
-              // حلقة تقدم حقيقية ومحدثة لحظياً بناءً على التصميم المطور
+              
+              // إعادة الـ ProgressRing لمتغيراته الأصلية لمنع تعارض البناء
               ProgressRing(
                 progress: progress,
-                isComplete: !scanning && progress == 1.0,
+                title: status,
+                subtitle: scanning ? "AI Running..." : "System Ready",
               ),
 
               const SizedBox(height: 25),
 
-              // لوحة الإحصائيات الأفقية المدمجة المكونة من 3 أعمدة
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.cardBackground.withOpacity(0.6),
+                  color: Colors.white.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.white.withOpacity(0.05)),
                 ),
@@ -145,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildStatColumn(
                       scanning ? "${(progress * 100).toInt()}%" : "100%",
                       "Performance",
-                      AppColors.successGreen,
+                      const Color(0xFF00E676),
                     ),
                   ],
                 ),
@@ -153,9 +151,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 25),
 
-              // قسم عنوان لوحة السجلات (Scan Log) مع زر التوسيع الإضافي
               Row(
-                mainAxisAlignment: MainAxisAlignment.between,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     "Scan Log",
@@ -168,12 +165,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
 
-              // حاوية عرض قائمة السجلات الدقيقة
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.cardBackground.withOpacity(0.4),
+                    color: Colors.white.withOpacity(0.02),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.white.withOpacity(0.03)),
                   ),
@@ -190,19 +186,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 5),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.between,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Row(
                                     children: [
                                       Icon(
                                         Icons.check_circle_outline_rounded,
-                                        color: AppColors.successGreen.withOpacity(0.8),
+                                        color: const Color(0xFF00E676).withOpacity(0.8),
                                         size: 16,
                                       ),
                                       const SizedBox(width: 10),
                                       Text(
                                         logs[i]["message"]!,
-                                        style: const TextStyle(color: Colors.whitede, fontSize: 13),
+                                        style: const TextStyle(color: Colors.white, fontSize: 13),
                                       ),
                                     ],
                                   ),
@@ -220,7 +216,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 20),
 
-              // قسم أدوات الصيانة الذكية (Smart Tools) المضاف من التصميم
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -243,7 +238,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 25),
 
-              // زر الفحص الأساسي المعدل والمصلح بالكامل
               AnimatedButton(
                 title: scanning ? "SCANNING..." : "RUN DEEP CLEAN",
                 icon: scanning ? Icons.sync_rounded : Icons.cleaning_services,
@@ -254,7 +248,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      // إدراج شريط التنقل السفلي الاحترافي الكامل المتواجد بالصورة المعتمدة
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF090D1A),
         type: BottomNavigationBarType.fixed,
@@ -273,7 +266,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // بناء وحدة عرض إحصائيات الأعمدة
   Widget _buildStatColumn(String value, String title, Color valueColor) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -291,7 +283,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // بناء مربعات أدوات الصيانة الفردية السفلية
   Widget _buildToolItem(IconData icon, String label) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -314,4 +305,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
