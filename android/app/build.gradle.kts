@@ -6,8 +6,7 @@ plugins {
 android {
     namespace = "com.example.flutter_cleaner_app"
     compileSdk = 35
-    ndkVersion = flutter.ndkVersion
-
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -21,13 +20,8 @@ android {
         versionName = flutter.versionName
     }
 
-    lint {
-        checkReleaseBuilds = false
-        abortOnError = false
-    }
-
     buildTypes {
-        getByName("release") {
+        release {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -41,22 +35,4 @@ kotlin {
 
 flutter {
     source = "../.."
-}
-
-// الحل الجذري: تعطيل فحص الـ Metadata لجميع المهام التي قد تسبب هذا الخطأ
-subprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty("android")) {
-            project.android {
-                if (namespace != null && namespace!!.contains("app_settings")) {
-                    // هذا الجزء يستهدف مكتبة المشاكل تحديداً
-                }
-            }
-        }
-        
-        // تعطيل الفحص لكل الـ Tasks التي تحتوي على check...AarMetadata
-        tasks.matching { it.name.contains("check") && it.name.contains("AarMetadata") }.configureEach {
-            enabled = false
-        }
-    }
 }
