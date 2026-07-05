@@ -18,7 +18,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
   @override
   void dispose() {
-    // ✅ إصلاح تسريب الذاكرة: تنظيف وحدة التحكم بنجاح عند إغلاق الشاشة
     _controller.dispose();
     super.dispose();
   }
@@ -81,7 +80,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                       const SizedBox(height: 8),
 
                       const Text(
-                        "Smart Cleaner & Optimizer", // تحديث النص ليطابق الصورة 1000204376.png
+                        "Smart Cleaner & Optimizer",
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 15,
@@ -92,7 +91,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
                       const SizedBox(height: 35),
 
-                      // إضافة رسائل الترحيب المتواجدة في التصميم المعتمد
                       const Text(
                         "Welcome Back!",
                         style: TextStyle(
@@ -119,8 +117,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
                           hintText: "Activation Key",
-                          hintStyle:
-                              const TextStyle(color: Colors.white54),
+                          hintStyle: const TextStyle(color: Colors.white54),
                           prefixIcon: const Icon(
                             Icons.vpn_key_rounded,
                             color: AppColors.primary,
@@ -128,8 +125,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                           filled: true,
                           fillColor: AppColors.field,
                           border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(18),
                             borderSide: BorderSide.none,
                           ),
                         ),
@@ -151,7 +147,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
                       const SizedBox(height: 40),
 
-                      // إضافة بطاقة الوصول السريع (Quick Access) السفلي كما في الصورة 1000204376.png
                       Container(
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
@@ -186,7 +181,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
                       const SizedBox(height: 35),
 
-                      // تحديث التذييل ليكون متناسقاً وأكثر حداثة وأماناً
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
@@ -213,7 +207,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
       );
     }
 
-    // ويدجت داخلي لبناء عناصر الوصول السريع بشكل منظم ومرن
     Widget _buildQuickAccessItem(IconData icon, String label) {
       return Column(
         mainAxisSize: MainAxisSize.min,
@@ -236,5 +229,3 @@ class _ActivationScreenState extends State<ActivationScreen> {
       );
     }
   }
-}
-
