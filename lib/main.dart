@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:app_settings/app_settings.dart';
 
 void main() => runApp(const CleanerApp());
 
@@ -31,7 +30,6 @@ class _ActivationScreenState extends State<ActivationScreen> {
   final TextEditingController _codeController = TextEditingController();
 
   void _checkActivation() {
-    // المفتاح النهائي
     if (_codeController.text == "Maloohm123") {
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainCleanerScreen()));
     } else {
@@ -118,7 +116,8 @@ class _MainCleanerScreenState extends State<MainCleanerScreen> {
           ListTile(
             title: const Text("Clear App Cache Settings"),
             leading: const Icon(Icons.settings_applications),
-            onTap: () => AppSettings.openAppSettings(type: AppSettingsType.settings),
+            // تم استبدال المكتبة المحذوفة بـ openAppSettings من مكتبة permission_handler
+            onTap: () => openAppSettings(),
           ),
         ],
       ),
