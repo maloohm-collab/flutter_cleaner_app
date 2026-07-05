@@ -1,13 +1,10 @@
 plugins {
     id("com.android.application")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
     namespace = "com.example.flutter_cleaner_app"
-    
-    // تم التعديل لفرض الإصدار 35
     compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
@@ -18,23 +15,19 @@ android {
 
     defaultConfig {
         applicationId = "com.example.flutter_cleaner_app"
-        
-        // تم التعديل لفرض الإصدارات المناسبة
         minSdk = 21
         targetSdk = 35
-        
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
-    // إضافة هذه الإعدادات لتجاوز أخطاء التوافق أثناء البناء
     lint {
         checkReleaseBuilds = false
         abortOnError = false
     }
 
     buildTypes {
-        release {
+        getByName("release") {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -42,7 +35,7 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
@@ -50,9 +43,7 @@ flutter {
     source = "../.."
 }
 
-// تعطيل فحص التوافق الإجباري للمكتبات لتجنب أخطاء CheckAarMetadata
-tasks.whenTaskAdded { task ->
-    if (task.name.contains("checkReleaseAarMetadata")) {
-        task.enabled = false
-    }
+// الكود الصحيح بـ Kotlin DSL لتعطيل فحص الميتا-داتا
+tasks.matching { it.name.contains("checkReleaseAarMetadata") }.configureEach {
+    enabled = false
 }
