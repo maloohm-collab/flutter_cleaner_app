@@ -7,8 +7,8 @@ plugins {
 android {
     namespace = "com.example.flutter_cleaner_app"
     
-    // تم التعديل لفرض الإصدار 34
-    compileSdk = 34
+    // تم التعديل لفرض الإصدار 35
+    compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -21,7 +21,7 @@ android {
         
         // تم التعديل لفرض الإصدارات المناسبة
         minSdk = 21
-        targetSdk = 34
+        targetSdk = 35
         
         versionCode = flutter.versionCode
         versionName = flutter.versionName
