@@ -204,28 +204,30 @@ class _ActivationScreenState extends State<ActivationScreen> {
             ),
           ),
         ),
-      );
-    }
-
-    Widget _buildQuickAccessItem(IconData icon, String label) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withOpacity(0.04)),
-            ),
-            child: Icon(icon, color: const Color(0xFF00F2FE), size: 22),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 11),
-          ),
-        ],
-      );
-    }
+      ),
+    );
   }
+
+  Widget _buildQuickAccessItem(IconData icon, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white.withOpacity(0.04)),
+          ),
+          child: Icon(icon, color: const Color(0xFF00F2FE), size: 22),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 11),
+        ),
+      ],
+    );
+  }
+}
+
