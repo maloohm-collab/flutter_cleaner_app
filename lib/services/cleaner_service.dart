@@ -31,6 +31,7 @@ class CleanerService {
     );
   }
 
+  // ✅ تم تحويل الدالة لتعمل بشكل تدفقي غير متزامن لحماية الواجهة من التجمد
   Future<void> _scanDirectory(
     Directory directory,
     Function(String) onLog,
@@ -40,16 +41,14 @@ class CleanerService {
       scannedFolders++;
       onUpdate();
 
-      final entities = directory.listSync();
-
-      for (final entity in entities) {
+      // استخدام list() بدلاً من listSync() لعدم حظر الـ UI Thread
+      await for (final entity in directory.list(recursive: false, followLinks: false)) {
         if (entity is Directory) {
           if (entity.path.toLowerCase().contains("thumbnails")) {
             onLog("Cleaning ${entity.path.split('/').last}");
 
-            final files = entity.listSync();
-
-            for (final file in files) {
+            // جرد الملفات داخل مجلد الـ thumbnails بشكل غير متزامن أيضاً
+            await for (final file in entity.list(recursive: false, followLinks: false)) {
               if (file is File) {
                 try {
                   final size = await file.length();
@@ -65,6 +64,7 @@ class CleanerService {
               }
             }
           } else {
+            // استدعاء عودي آمن وغير متزامن
             await _scanDirectory(
               entity,
               onLog,
@@ -73,6 +73,8 @@ class CleanerService {
           }
         } else if (entity is File) {
           scannedFiles++;
+          // تحديث العداد دورياً أثناء جرد الملفات العادية ليعطي شعوراً بالسرعة والتحديث اللحظي
+          onUpdate();
         }
       }
     } catch (_) {}
@@ -85,7 +87,7 @@ class CleanerService {
 
     if (freedBytes < 1024 * 1024) {
       return "${(freedBytes / 1024).toStringAsFixed(1)} KB";
-    }
+        }
 
     if (freedBytes < 1024 * 1024 * 1024) {
       return "${(freedBytes / (1024 * 1024)).toStringAsFixed(2)} MB";
