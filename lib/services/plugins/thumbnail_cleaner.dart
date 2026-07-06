@@ -14,7 +14,9 @@ class ThumbnailCleaner {
     // إنشاء العنصر المكتشف وإضافته للقائمة
     results.add(
       ScanItem(
+        id: "thumbnail_cache",             // ✅ تم إضافة الـ id المطلوبة
         title: "Thumbnail Cache",
+        path: "cache/thumbnails_directory", // ✅ تم إضافة الـ path المطلوبة
         files: 124,
         bytes: 48 * 1024 * 1024, // 48 ميجابايت كمثال
         selected: true,
