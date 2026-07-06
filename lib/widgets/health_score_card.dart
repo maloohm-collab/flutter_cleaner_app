@@ -3,13 +3,27 @@ import '../utils/colors.dart';
 
 class HealthScoreCard extends StatelessWidget {
   final double score;
-  final String status;
 
   const HealthScoreCard({
     super.key,
     required this.score,
-    required this.status,
   });
+
+  // دالة ذكية لتحديد حالة الجهاز ديناميكياً ولحظياً بناءً على النتيجة
+  String _getHealthStatus(double healthScore) {
+    if (healthScore >= 85) return "Excellent";
+    if (healthScore >= 70) return "Good";
+    if (healthScore >= 50) return "Fair";
+    return "Action Required";
+  }
+
+  // دالة لتغيير لون خلفية الحالة حسب خطورة الوضع
+  Color _getStatusColor(double healthScore) {
+    if (healthScore >= 85) return Colors.white24;
+    if (healthScore >= 70) return Colors.white12;
+    if (healthScore >= 50) return Colors.orange.withOpacity(0.3);
+    return Colors.red.withOpacity(0.4);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +43,6 @@ class HealthScoreCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-
           const Text(
             "AI HEALTH SCORE",
             style: TextStyle(
@@ -38,9 +51,7 @@ class HealthScoreCard extends StatelessWidget {
               fontSize: 15,
             ),
           ),
-
           const SizedBox(height: 18),
-
           Text(
             "${score.toStringAsFixed(0)}%",
             style: const TextStyle(
@@ -48,27 +59,25 @@ class HealthScoreCard extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 8),
-
-          Container(
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
             padding: const EdgeInsets.symmetric(
               horizontal: 18,
               vertical: 8,
             ),
             decoration: BoxDecoration(
-              color: Colors.white24,
+              color: _getStatusColor(score),
               borderRadius: BorderRadius.circular(25),
             ),
             child: Text(
-              status,
+              _getHealthStatus(score),
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
             ),
           ),
-
         ],
       ),
     );
