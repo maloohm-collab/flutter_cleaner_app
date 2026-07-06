@@ -12,6 +12,9 @@ import '../services/cleaner_engine.dart';
 import '../services/scan_pipeline.dart';
 import '../services/models/scan_item.dart';
 
+// 1) إضافة استيراد حالة لوحة التحكم الموحدة
+import '../models/dashboard_state.dart';
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -20,35 +23,36 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  double healthScore = 97;
-  double progress = 0;
-  bool scanning = false;
-  String currentTask = "Ready for AI Analysis";
-
   // المتغيرات لربط البيانات المحرك
   final CleanerEngine _engine = CleanerEngine();
   final ScanPipeline _pipeline = ScanPipeline();
   List<ScanItem> scanItems = [];
-  int totalFiles = 0;
-  int totalBytes = 0;
-  bool analysisFinished = false;
+
+  // 3) إضافة كائن الحالة الموحد مكان المتغيرات القديمة المحذوفة
+  DashboardState state = const DashboardState();
 
   // دالة بدء الفحص والتحليل الرقمي
   Future<void> startAnalysis() async {
-    if (scanning) return;
+    if (state.scanning) return;
 
+    // 5) استبدال أول setState بالكامل لتهيئة الفحص عبر copyWith
     setState(() {
-      scanning = true;
-      analysisFinished = false;
-      progress = 0;
-      currentTask = "Initializing AI Engine...";
+      state = state.copyWith(
+        scanning: true,
+        analysisFinished: false,
+        progress: 0,
+        currentTask: "Initializing AI Engine...",
+      );
     });
 
     await _pipeline.start(
       onStage: (stage, p, message) async {
+        // 5) استبدال الحالة داخل onStage للتحديث التدريجي للمراحل
         setState(() {
-          progress = p;
-          currentTask = message;
+          state = state.copyWith(
+            progress: p,
+            currentTask: message,
+          );
         });
       },
     );
@@ -56,23 +60,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
     scanItems = await _engine.scan(
       onStatus: (msg) {
         setState(() {
-          currentTask = msg;
+          state = state.copyWith(currentTask: msg);
         });
       },
       onProgress: (p) {
         setState(() {
-          progress = p;
+          state = state.copyWith(progress: p);
         });
       },
     );
 
-    totalFiles = _engine.totalFiles;
-    totalBytes = _engine.totalBytes;
-
+    // 5) استبدال الحالة بعد انتهاء الفحص بالكامل وتخزين الإحصائيات المستخرجة
     setState(() {
-      scanning = false;
-      analysisFinished = true;
-      currentTask = "Analysis Complete";
+      state = state.copyWith(
+        scanning: false,
+        analysisFinished: true,
+        progress: 1,
+        currentTask: "Analysis Complete",
+        totalFiles: _engine.totalFiles,
+        totalBytes: _engine.totalBytes,
+      );
     });
   }
 
@@ -103,36 +110,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
 
+    // 6) استبدال أول setState لبدء عملية معالجة وحذف الملفات
     setState(() {
-      scanning = true;
-      progress = 0;
-      currentTask = "Cleaning...";
+      state = state.copyWith(
+        scanning: true,
+        progress: 0,
+        currentTask: "Cleaning...",
+      );
     });
 
     final deleted = await _engine.clean(
       selected: selected,
       onStatus: (msg) {
         setState(() {
-          currentTask = msg;
+          state = state.copyWith(currentTask: msg);
         });
       },
     );
 
+    // 6) استبدال الحالة بعد انتهاء التنظيف لتفريغ العدادات وتصفير لوحة التحكم
     setState(() {
-      scanning = false;
-      currentTask = "Optimization Complete";
-      
-      // تفريغ البيانات وإعادة تهيئة الواجهة لفحص جديد
       scanItems.clear();
-      analysisFinished = false;
-      totalFiles = 0;
-      totalBytes = 0;
-      progress = 0;
+
+      state = state.copyWith(
+        scanning: false,
+        analysisFinished: false,
+        progress: 0,
+        currentTask: "Optimization Complete",
+        totalFiles: 0,
+        totalBytes: 0,
+      );
     });
 
     if (!mounted) return;
 
-    // تحسين رسالة النجاح بشكل عصري ومميز
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -211,15 +222,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               const SizedBox(height: 25),
+              
+              // 4) تعويض متغيرات العرض لتستهدف كائن state الموحد مباشرة
               HealthScoreCard(
-                score: healthScore,
+                score: state.healthScore,
                 status: "Excellent",
               ),
               const SizedBox(height: 25),
               LiveScanCard(
-                currentTask: currentTask,
-                progress: progress,
-                scanning: scanning,
+                currentTask: state.currentTask,
+                progress: state.progress,
+                scanning: state.scanning,
               ),
               const SizedBox(height: 25),
               const Text(
@@ -241,7 +254,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   StatCard(
                     icon: Icons.delete_outline,
                     title: "Files Found",
-                    value: "$totalFiles",
+                    value: "${state.totalFiles}",
                   ),
                   const StatCard(
                     icon: Icons.folder_open,
@@ -252,7 +265,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   StatCard(
                     icon: Icons.storage,
                     title: "Recovered",
-                    value: formatBytes(totalBytes),
+                    value: formatBytes(state.totalBytes),
                     color: AppColors.success,
                   ),
                   const StatCard(
@@ -327,7 +340,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
 
-              // قسم عرض العناصر المكتشفة
+              // قسم عرض العناصر المكتشفة حركياً
               if (scanItems.isNotEmpty) ...[
                 const SizedBox(height: 25),
                 const Text(
@@ -354,35 +367,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 25),
               
-              // الزر الذكي الجديد والديناميكي بالكامل
+              // معالجة حالة الزر التفاعلي بناءً على مؤشرات الكائن الموحد
               SizedBox(
                 width: double.infinity,
                 height: 62,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: analysisFinished
+                    backgroundColor: state.analysisFinished
                         ? Colors.green
                         : AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
                     ),
                   ),
-                  onPressed: scanning
+                  onPressed: state.scanning
                       ? null
-                      : analysisFinished
+                      : state.analysisFinished
                           ? startCleaning
                           : startAnalysis,
                   icon: Icon(
-                    scanning
+                    state.scanning
                         ? Icons.sync
-                        : analysisFinished
+                        : state.analysisFinished
                             ? Icons.cleaning_services
                             : Icons.auto_fix_high,
                   ),
                   label: Text(
-                    scanning
+                    state.scanning
                         ? "PROCESSING..."
-                        : analysisFinished
+                        : state.analysisFinished
                             ? "START OPTIMIZATION"
                             : "START AI ANALYSIS",
                     style: const TextStyle(
