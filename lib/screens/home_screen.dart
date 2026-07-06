@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
 // الاستيرادات القياسية للمحرك والحالة الموحدة
-import '../services/cleaner_engine.dart';
-import '../services/scan_pipeline.dart';
-import '../services/models/scan_item.dart';
-import '../models/dashboard_state.dart';
-import '../widgets/health_score_card.dart';
-import '../widgets/live_scan_card.dart';
-import '../widgets/scan_result_card.dart';
+import 'package:flutter_cleaner_app/services/cleaner_engine.dart';
+import 'package:flutter_cleaner_app/services/scan_pipeline.dart';
+import 'package:flutter_cleaner_app/services/scan_item.dart'; // 👈 هذا هو السطر الذي تم تصحيحه!
+import 'package:flutter_cleaner_app/models/dashboard_state.dart';
+import 'package:flutter_cleaner_app/widgets/health_score_card.dart';
+import 'package:flutter_cleaner_app/widgets/live_scan_card.dart';
+import 'package:flutter_cleaner_app/widgets/scan_result_card.dart';
+
 
 import '../utils/colors.dart';
 import '../widgets/animated_button.dart';
