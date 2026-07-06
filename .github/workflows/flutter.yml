@@ -3,6 +3,7 @@ name: Flutter Build
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch: # 🚀 هذا السطر يضيف زر التشغيل اليدوي (Run workflow) في واجهة جيت هاب
 
 jobs:
   build:
