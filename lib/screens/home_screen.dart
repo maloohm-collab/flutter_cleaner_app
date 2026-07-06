@@ -315,91 +315,220 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Text(
                                     logs[i]["time"]!,
                                     style: const TextStyle(color: Colors.white30, fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ),
+      body: SafeArea(
+        child: SingleChildScrollView( // 👈 تم إضافة التمرير هنا لضمان ظهور الزر وبقية العناصر
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            child: Column(
+              children: [
+                const SizedBox(height: 10),
 
-              const SizedBox(height: 20),
-
-              if (scanItems.isNotEmpty) ...[
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Detected Items",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                ProgressRing(
+                  progress: state.progress,
+                  title: state.currentTask,
+                  subtitle: state.scanning
+                      ? "AI Engine Running..."
+                      : "Ready for Analysis",
                 ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 220,
-                  child: ListView.builder(
-                    itemCount: scanItems.length,
-                    itemBuilder: (context, index) {
-                      return ScanResultCard(
-                        item: scanItems[index],
-                        onChanged: (value) {
-                          setState(() {
-                            scanItems[index] = scanItems[index].copyWith(
-                              selected: value ?? true,
-                            );
-                          });
-                        },
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
 
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Smart Tools",
-                    style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                const SizedBox(height: 25),
+
+                // ✅ الاعتماد بالكامل على الفحص الداخلي لـ score
+                HealthScoreCard(
+                  score: state.healthScore,
+                ),
+
+                const SizedBox(height: 18),
+
+                LiveScanCard(
+                  currentTask: state.currentTask,
+                  progress: state.progress,
+                  scanning: state.scanning,
+                ),
+
+                const SizedBox(height: 25),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withOpacity(0.05)),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _buildToolItem(Icons.cleaning_services_rounded, "Deep Clean"),
-                      _buildToolItem(Icons.insert_drive_file_rounded, "Large Files"),
-                      _buildToolItem(Icons.file_copy_rounded, "Duplicates"),
-                      _buildToolItem(Icons.android_rounded, "App Manager"),
+                      _buildStatColumn(
+                        "${state.totalFiles}",
+                        "Files Cleaned",
+                        const Color(0xFF00F2FE),
+                      ),
+                      Container(width: 1, height: 35, color: Colors.white10),
+                      _buildStatColumn(
+                        formatBytes(state.totalBytes),
+                        "Space Freed",
+                        const Color(0xFFE040FB),
+                      ),
+                      Container(width: 1, height: 35, color: Colors.white10),
+                      _buildStatColumn(
+                        state.scanning ? "${(state.progress * 100).toInt()}%" : "100%",
+                        "Performance",
+                        const Color(0xFF00E676),
+                      ),
                     ],
                   ),
+                ),
+
+                const SizedBox(height: 25),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Scan Log",
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    TextButton(
+                      onPressed: () {},
+                      child: const Text("View All >", style: TextStyle(color: Color(0xFF4FACFE), fontSize: 13)),
+                    ),
+                  ],
+                ),
+
+                // 👈 تم استبدال Expanded بـ SizedBox ليتوافق مع التمرير وتظهر الأزرار السفلية
+                SizedBox(
+                  height: 150, 
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.02),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.03)),
+                    ),
+                    child: logs.isEmpty
+                        ? const Center(
+                            child: Text(
+                              "No activity yet",
+                              style: TextStyle(color: Colors.white38),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: logs.length,
+                            itemBuilder: (_, i) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 5),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.check_circle_outline_rounded,
+                                          color: const Color(0xFF00E676).withOpacity(0.8),
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          logs[i]["message"]!,
+                                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      logs[i]["time"]!,
+                                      style: const TextStyle(color: Colors.white30, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                if (scanItems.isNotEmpty) ...[
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Detected Items",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 220,
+                    child: ListView.builder(
+                      itemCount: scanItems.length,
+                      itemBuilder: (context, index) {
+                        return ScanResultCard(
+                          item: scanItems[index],
+                          onChanged: (value) {
+                            setState(() {
+                              scanItems[index] = scanItems[index].copyWith(
+                                selected: value ?? true,
+                              );
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                 ],
-              ),
 
-              const SizedBox(height: 25),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Smart Tools",
+                      style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildToolItem(Icons.cleaning_services_rounded, "Deep Clean"),
+                        _buildToolItem(Icons.insert_drive_file_rounded, "Large Files"),
+                        _buildToolItem(Icons.file_copy_rounded, "Duplicates"),
+                        _buildToolItem(Icons.android_rounded, "App Manager"),
+                      ],
+                    ),
+                  ],
+                ),
 
-              AnimatedButton(
-                title: state.scanning
-                    ? "PROCESSING..."
-                    : state.analysisFinished
-                        ? "START OPTIMIZATION"
-                        : "START AI ANALYSIS",
-                icon: state.scanning
-                    ? Icons.sync
-                    : state.analysisFinished
-                        ? Icons.cleaning_services
-                        : Icons.auto_fix_high,
-                onPressed: state.scanning
-                    ? null
-                    : state.analysisFinished
-                        ? performCleaning
-                        : startAnalysis,
-              ),
-              const SizedBox(height: 15),
+                const SizedBox(height: 25),
+
+                // 👈 هذا الزر سيظهر الآن فوراً على الشاشة وعند الضغط عليه سيبدأ المحرك بالفحص الفعلي!
+                AnimatedButton(
+                  title: state.scanning
+                      ? "PROCESSING..."
+                      : state.analysisFinished
+                          ? "START OPTIMIZATION"
+                          : "START AI ANALYSIS",
+                  icon: state.scanning
+                      ? Icons.sync
+                      : state.analysisFinished
+                          ? Icons.cleaning_services
+                          : Icons.auto_fix_high,
+                  onPressed: state.scanning
+                      ? null
+                      : state.analysisFinished
+                          ? performCleaning
+                          : startAnalysis,
+                ),
+                const SizedBox(height: 15),
+              ],
+            ),
+          ),
+        ),
+      ),
+
             ],
           ),
         ),
