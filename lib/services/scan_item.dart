@@ -1,16 +1,11 @@
+// ✅ تم تعديل الكلمة المفتاحية إلى حروف صغيرة (class) ليتعرف عليها الـ Compiler بنجاح
 class ScanItem {
   final String id;
-
   final String title;
-
   final String path;
-
   final int files;
-
   final int bytes;
-
   final bool safeToDelete;
-
   final bool selected;
 
   const ScanItem({
@@ -45,16 +40,23 @@ class ScanItem {
     return "${sizeGB.toStringAsFixed(2)} GB";
   }
 
+  // تحديث الدالة لتصبح مرنة وتدعم تعديل أي حقل عند الحاجة
   ScanItem copyWith({
+    String? id,
+    String? title,
+    String? path,
+    int? files,
+    int? bytes,
+    bool? safeToDelete,
     bool? selected,
   }) {
     return ScanItem(
-      id: id,
-      title: title,
-      path: path,
-      files: files,
-      bytes: bytes,
-      safeToDelete: safeToDelete,
+      id: id ?? this.id,
+      title: title ?? this.title,
+      path: path ?? this.path,
+      files: files ?? this.files,
+      bytes: bytes ?? this.bytes,
+      safeToDelete: safeToDelete ?? this.safeToDelete,
       selected: selected ?? this.selected,
     );
   }
