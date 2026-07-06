@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 // بقية كود الـ Widget الخاص بك بدون أي تغيير...
 
-import '../services/models/scan_item.dart';
+import 'package:flutter_cleaner_app/services/scan_item.dart';
 import '../utils/colors.dart';
 
 class ScanResultCard extends StatelessWidget {
