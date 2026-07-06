@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../models/scan_item.dart';
+import '../models/scan_item.dart';
 
 class ThumbnailCleaner {
   Future<List<ScanItem>> scan({
