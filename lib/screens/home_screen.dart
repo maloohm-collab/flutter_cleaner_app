@@ -115,30 +115,123 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // الدالة الخاصة بعملية التنظيف الفعلي للفولدرات والمساحة
+  // الدالة المحسنة لعملية التنظيف الفعلي مع نافذة التأكيد المنبثقة
   Future<void> performCleaning() async {
     if (state.scanning) return;
 
+    // تصفية العناصر التي حددها المستخدم فقط للتنظيف
+    final selectedItems = scanItems.where((item) => item.selected).toList();
+    
+    if (selectedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please select at least one cache category to clean."),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    // 1️⃣ إظهار نافذة التأكيد المنبثقة المتناسقة مع ثيم التطبيق الداكن والنيون
+    bool? shouldClean = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false, // منع الإغلاق عند الضغط خارج النافذة بالخطأ
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF0E1326), // لون داكن فخم يناسب الهوية البصرية لشاشاتك
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: Border.all(color: Colors.white.withOpacity(0.08)),
+          ),
+          title: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Color(0xFFFFD700), size: 26),
+              const SizedBox(width: 10),
+              const Text(
+                "Confirm Deletion",
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: Text(
+            "Are you sure you want to permanently delete the selected cache files (${formatBytes(state.totalBytes.toInt())}) from this device?",
+            style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4),
+          ),
+          actions: [
+            // زر إلغاء عملية الحذف والتراجع
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text(
+                "Cancel",
+                style: TextStyle(color: Colors.white38, fontSize: 14),
+              ),
+            ),
+            // زر التأكيد والمضي قدماً في التنظيف الفعلي
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text(
+                "Clean Now",
+                style: TextStyle(color: Color(0xFF00F2FE), fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    // إذا اختار المستخدم إلغاء الأمر، نوقف تنفيذ الدالة فوراً ولا نغير شيئاً
+    if (shouldClean != true) {
+      _addLog("Optimization canceled by user.");
+      return;
+    }
+
+    // 2️⃣ بدء التنظيف الفعلي عبر المحرك بعد الحصول على الموافقة
     setState(() {
       state = state.copyWith(
         scanning: true,
-        currentTask: "Scanning...",
-        progress: 0.05,
+        currentTask: "Initializing deep clean...",
+        progress: 0.15,
       );
       logs.clear();
     });
 
-    _addLog("Scanning directories...");
+    _addLog("Executing device file cleanup...");
 
-    await Future.delayed(const Duration(seconds: 2));
+    // استدعاء دالة الحذف للملفات الفعلية المجمعة في الذاكرة
+    await _engine.clean(
+      selected: selectedItems,
+      onStatus: (msg) {
+        if (!mounted) return;
+        _addLog(msg);
+        setState(() {
+          state = state.copyWith(currentTask: msg);
+        });
+      },
+    );
+
+    // محاكاة حركية بصرية لتحديث شريط التقدم بسلاسة فنية حتى النهاية
+    for (double p = 0.4; p <= 1.0; p += 0.15) {
+      await Future.delayed(const Duration(milliseconds: 80));
+      if (!mounted) return;
+      setState(() {
+        state = state.copyWith(progress: p.clamp(0.0, 1.0));
+      });
+    }
+
+    if (!mounted) return;
 
     setState(() {
+      scanItems.clear(); // تفريغ القائمة من الواجهة تماماً لأن الملفات حُذفت فعلياً
       state = state.copyWith(
         scanning: false,
-        progress: 1.0,
-        currentTask: "Optimization Complete",
+        analysisFinished: false, // العودة للوضع الافتراضي ليكون مستعداً لفحص حقيقي جديد لاحقاً
+        progress: 0.0,
+        currentTask: "System Fully Optimized!",
+        totalFiles: 0,
+        totalBytes: 0,
+        healthScore: 100, // إعادة مؤشر صحة الجهاز إلى الدرجة الكاملة 100%
       );
-      _addLog("Optimization Complete");
+      _addLog("Optimization Complete. 0B Left.");
     });
   }
 
@@ -243,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       Container(width: 1, height: 35, color: Colors.white10),
                       _buildStatColumn(
-                        formatBytes(state.totalBytes),
+                        formatBytes(state.totalBytes.toInt()),
                         "Space Freed",
                         const Color(0xFFE040FB),
                       ),
@@ -461,3 +554,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
