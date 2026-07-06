@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 // الاستيرادات القياسية للمحرك والحالة الموحدة
 import 'package:flutter_cleaner_app/services/cleaner_engine.dart';
 import 'package:flutter_cleaner_app/services/scan_pipeline.dart';
-import 'package:flutter_cleaner_app/services/scan_item.dart'; // 👈 هذا هو السطر الذي تم تصحيحه!
+import 'package:flutter_cleaner_app/services/scan_item.dart'; 
 import 'package:flutter_cleaner_app/models/dashboard_state.dart';
 import 'package:flutter_cleaner_app/widgets/health_score_card.dart';
 import 'package:flutter_cleaner_app/widgets/live_scan_card.dart';
 import 'package:flutter_cleaner_app/widgets/scan_result_card.dart';
-
 
 import '../utils/colors.dart';
 import '../widgets/animated_button.dart';
@@ -60,7 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     await _pipeline.start(
-      // ✅ تم إضافة كلمة async هنا لإصلاح خطأ الـ Return الفراغي ومنع تعارض الأنواع
       onStage: (stage, progress, message) async {
         if (!mounted) return;
 
@@ -197,126 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-
-              ProgressRing(
-                progress: state.progress,
-                title: state.currentTask,
-                subtitle: state.scanning
-                    ? "AI Engine Running..."
-                    : "Ready for Analysis",
-              ),
-
-              const SizedBox(height: 25),
-
-              // ✅ تم حذف باراميتر status المسبب للخطأ، والاعتماد بالكامل على الفحص الداخلي لـ score
-              HealthScoreCard(
-                score: state.healthScore,
-              ),
-
-              const SizedBox(height: 18),
-
-              LiveScanCard(
-                currentTask: state.currentTask,
-                progress: state.progress,
-                scanning: state.scanning,
-              ),
-
-              const SizedBox(height: 25),
-
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.05)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildStatColumn(
-                      "${state.totalFiles}",
-                      "Files Cleaned",
-                      const Color(0xFF00F2FE),
-                    ),
-                    Container(width: 1, height: 35, color: Colors.white10),
-                    _buildStatColumn(
-                      formatBytes(state.totalBytes),
-                      "Space Freed",
-                      const Color(0xFFE040FB),
-                    ),
-                    Container(width: 1, height: 35, color: Colors.white10),
-                    _buildStatColumn(
-                      state.scanning ? "${(state.progress * 100).toInt()}%" : "100%",
-                      "Performance",
-                      const Color(0xFF00E676),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Scan Log",
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  TextButton(
-                    onPressed: () {},
-                    child: const Text("View All >", style: TextStyle(color: Color(0xFF4FACFE), fontSize: 13)),
-                  ),
-                ],
-              ),
-
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.02),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.03)),
-                  ),
-                  child: logs.isEmpty
-                      ? const Center(
-                          child: Text(
-                            "No activity yet",
-                            style: TextStyle(color: Colors.white38),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: logs.length,
-                          itemBuilder: (_, i) {
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 5),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.check_circle_outline_rounded,
-                                        color: const Color(0xFF00E676).withOpacity(0.8),
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Text(
-                                        logs[i]["message"]!,
-                                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    logs[i]["time"]!,
-                                    style: const TextStyle(color: Colors.white30, fontSize: 12),
-      body: SafeArea(
-        child: SingleChildScrollView( // 👈 تم إضافة التمرير هنا لضمان ظهور الزر وبقية العناصر
+        child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 18),
             child: Column(
@@ -333,7 +212,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 25),
 
-                // ✅ الاعتماد بالكامل على الفحص الداخلي لـ score
                 HealthScoreCard(
                   score: state.healthScore,
                 ),
@@ -395,9 +273,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
 
-                // 👈 تم استبدال Expanded بـ SizedBox ليتوافق مع التمرير وتظهر الأزرار السفلية
                 SizedBox(
-                  height: 150, 
+                  height: 150,
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
@@ -504,7 +381,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const SizedBox(height: 25),
 
-                // 👈 هذا الزر سيظهر الآن فوراً على الشاشة وعند الضغط عليه سيبدأ المحرك بالفحص الفعلي!
                 AnimatedButton(
                   title: state.scanning
                       ? "PROCESSING..."
@@ -525,11 +401,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 15),
               ],
             ),
-          ),
-        ),
-      ),
-
-            ],
           ),
         ),
       ),
@@ -590,4 +461,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
