@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-// الاستيرادات الجديدة للمحرك والحالة الموحدة
+// الاستيرادات القياسية للمحرك والحالة الموحدة
 import '../services/cleaner_engine.dart';
 import '../services/scan_pipeline.dart';
 import '../services/models/scan_item.dart';
@@ -21,7 +21,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // المتغيرات المركزية للمحرك والحالة الموحدة
   final CleanerEngine _engine = CleanerEngine();
   final ScanPipeline _pipeline = ScanPipeline();
 
@@ -60,7 +59,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     await _pipeline.start(
-      onStage: (stage, progress, message) {
+      // ✅ تم إضافة كلمة async هنا لإصلاح خطأ الـ Return الفراغي ومنع تعارض الأنواع
+      onStage: (stage, progress, message) async {
         if (!mounted) return;
 
         setState(() {
@@ -100,7 +100,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     setState(() {
-      // احتساب النتيجة ديناميكياً بناءً على عدد الملفات المكتشفة
       healthScore = (_engine.totalFiles == 0)
           ? 100
           : (100 - (_engine.totalFiles ~/ 5)).clamp(65, 100);
@@ -117,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // الدالة القديمة بعد تغيير اسمها تمهيداً لربطها بالكامل لاحقاً
+  // الدالة الخاصة بعملية التنظيف الفعلي للفولدرات والمساحة
   Future<void> performCleaning() async {
     if (state.scanning) return;
 
@@ -213,14 +212,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 25),
 
-              // 1) إضافة بطاقة نتيجة صحة الجهاز وبطاقة الفحص الحي أسفل حلقة التقدم
+              // ✅ تم حذف باراميتر status المسبب للخطأ، والاعتماد بالكامل على الفحص الداخلي لـ score
               HealthScoreCard(
                 score: state.healthScore,
-                status: state.healthScore >= 90
-                    ? "Excellent"
-                    : state.healthScore >= 75
-                        ? "Good"
-                        : "Needs Optimization",
               ),
 
               const SizedBox(height: 18),
@@ -331,7 +325,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 20),
 
-              // 2) إضافة قسم عرض العناصر المكتشفة حركياً عند وجود ملفات
               if (scanItems.isNotEmpty) ...[
                 const Align(
                   alignment: Alignment.centerLeft,
@@ -340,6 +333,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -387,7 +381,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 25),
 
-              // 3) تعديل الزر السفلي ليتغير ديناميكياً حسب مراحل الفحص والتنظيف
               AnimatedButton(
                 title: state.scanning
                     ? "PROCESSING..."
