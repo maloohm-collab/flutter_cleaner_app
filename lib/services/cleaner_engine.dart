@@ -10,12 +10,14 @@ class CleanerEngine {
   List<ScanItem> get results => List.unmodifiable(_results);
 
   /// إجمالي الملفات
+  // ✅ تحديد النوع <int> صراحة لمنع تداخل الأنواع وحل مشكلة عدم التعرف على خصائص الـ ScanItem
   int get totalFiles =>
-      _results.fold(0, (sum, item) => sum + item.files);
+      _results.fold<int>(0, (sum, item) => sum + item.files);
 
   /// إجمالي الحجم
+  // ✅ تحديد النوع <int> هنا أيضاً لضمان حساب البايتات بدقة متناهية وبدون أخطاء
   int get totalBytes =>
-      _results.fold(0, (sum, item) => sum + item.bytes);
+      _results.fold<int>(0, (sum, item) => sum + item.bytes);
 
   /// عدد العناصر المكتشفة
   int get totalItems => _results.length;
