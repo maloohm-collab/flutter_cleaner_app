@@ -1,4 +1,4 @@
-import '../models/scan_item.dart'; // 👈 هذا السطر هو بطل القصة الذي سينهي الأخطاء تماماً
+import 'package:flutter_cleaner_app/services/models/scan_item.dart'; // 👈 استيراد مطلق ومباشر
 
 class ThumbnailCleaner {
   /// قائمة النتائج المحلية
@@ -32,7 +32,7 @@ class ThumbnailCleaner {
     onStatus?.call("Purging redundant thumbnail files...");
     await Future.delayed(const Duration(milliseconds: 800));
     
-    // حساب عدد الملفات التي تم حذفها بنجاح
+    // حساب عدد الملفات التي تم حذفها بنجاح مع تحديد النوع صراحة
     int deletedFilesCount = items.fold<int>(0, (sum, item) => sum + item.files);
     
     onStatus?.call("Purge complete. Optimized storage space.");
