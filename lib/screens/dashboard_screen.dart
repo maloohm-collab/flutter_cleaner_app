@@ -5,8 +5,9 @@ import '../widgets/health_score_card.dart';
 import '../widgets/live_scan_card.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/info_tile.dart';
+import '../widgets/scan_result_card.dart'; // الاستيراد الجديد لكارد عرض نتائج الفحص
 
-// الاستيرادات الجديدة الخاصة بمحرك الفحص
+// الاستيرادات الخاصة بمحرك الفحص
 import '../services/cleaner_engine.dart';
 import '../services/scan_pipeline.dart';
 import '../services/models/scan_item.dart';
@@ -24,7 +25,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool scanning = false;
   String currentTask = "Ready for AI Analysis";
 
-  // المتغيرات الجديدة لربط البيانات المحرك
+  // المتغيرات لربط البيانات المحرك
   final CleanerEngine _engine = CleanerEngine();
   final ScanPipeline _pipeline = ScanPipeline();
   List<ScanItem> scanItems = [];
@@ -87,6 +88,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return "${(bytes / 1024 / 1024).toStringAsFixed(2)} MB";
     }
     return "${(bytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB";
+  }
+
+  // دالة التنظيف وحذف الملفات المحددة
+  Future<void> startCleaning() async {
+    final selected = scanItems.where((e) => e.selected).toList();
+
+    if (selected.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("No items selected."),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      scanning = true;
+      progress = 0;
+      currentTask = "Cleaning...";
+    });
+
+    final deleted = await _engine.clean(
+      selected: selected,
+      onStatus: (msg) {
+        setState(() {
+          currentTask = msg;
+        });
+      },
+    );
+
+    setState(() {
+      scanning = false;
+      progress = 1;
+      currentTask = "Optimization Complete";
+    });
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Completed"),
+        content: Text(
+          "$deleted files removed successfully.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -166,7 +222,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   StatCard(
                     icon: Icons.delete_outline,
                     title: "Files Found",
-                    value: "$totalFiles", // ربط عدد الملفات الفعلي
+                    value: "$totalFiles",
                   ),
                   const StatCard(
                     icon: Icons.folder_open,
@@ -177,7 +233,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   StatCard(
                     icon: Icons.storage,
                     title: "Recovered",
-                    value: formatBytes(totalBytes), // ربط الحجم الفعلي وتنسيقه
+                    value: formatBytes(totalBytes),
                     color: AppColors.success,
                   ),
                   const StatCard(
@@ -251,9 +307,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               ),
+
+              // عرض القائمة المكتشفة هنا بناءً على الشرط المضاف
+              if (scanItems.isNotEmpty) ...[
+                const SizedBox(height: 25),
+                const Text(
+                  "Detected Items",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                ...scanItems.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
+                  return ScanResultCard(
+                    item: item,
+                    onChanged: (value) {
+                      setState(() {
+                        scanItems[index] = item.copyWith(selected: value ?? true);
+                      });
+                    },
+                  );
+                }),
+              ],
+
               const SizedBox(height: 25),
               
-              // زر بدء التحليل بالذكاء الاصطناعي مدمج هنا
+              // زر الإجراء السفلي
               SizedBox(
                 width: double.infinity,
                 height: 60,
