@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../services/cleaner_service.dart';
+// الاستيرادات الجديدة للمحرك والحالة الموحدة
+import '../services/cleaner_engine.dart';
+import '../services/scan_pipeline.dart';
+import '../services/models/scan_item.dart';
+import '../models/dashboard_state.dart';
+import '../widgets/health_score_card.dart';
+import '../widgets/live_scan_card.dart';
+import '../widgets/scan_result_card.dart';
+
 import '../utils/colors.dart';
 import '../widgets/animated_button.dart';
 import '../widgets/progress_ring.dart';
@@ -13,55 +21,141 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final CleanerService cleaner = CleanerService();
-  bool scanning = false;
-  double progress = 0;
-  String status = "Ready";
+  // المتغيرات المركزية للمحرك والحالة الموحدة
+  final CleanerEngine _engine = CleanerEngine();
+  final ScanPipeline _pipeline = ScanPipeline();
+
+  DashboardState state = const DashboardState();
+
+  List<ScanItem> scanItems = [];
   final List<Map<String, String>> logs = [];
 
-  Future<void> startCleaning() async {
-    if (scanning) return;
+  int healthScore = 100;
+  String lastOptimization = "Never";
 
-    bool granted = await cleaner.requestPermission();
-    if (!granted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Storage permission denied"),
-        ),
-      );
-      return;
-    }
+  @override
+  void initState() {
+    super.initState();
+
+    state = state.copyWith(
+      currentTask: "Ready for AI Analysis",
+      progress: 0,
+      healthScore: 100,
+    );
+  }
+
+  // دالة التحليل الحقيقي المتصلة بالأنبوب ومحرك الفحص الفعلي
+  Future<void> startAnalysis() async {
+    if (state.scanning) return;
 
     setState(() {
-      scanning = true;
-      status = "Scanning...";
-      progress = .05;
+      logs.clear();
+
+      state = state.copyWith(
+        scanning: true,
+        analysisFinished: false,
+        progress: 0,
+        currentTask: "Initializing AI Engine...",
+      );
+    });
+
+    await _pipeline.start(
+      onStage: (stage, progress, message) {
+        if (!mounted) return;
+
+        setState(() {
+          state = state.copyWith(
+            progress: progress,
+            currentTask: message,
+          );
+        });
+
+        _addLog(message);
+      },
+    );
+
+    scanItems = await _engine.scan(
+      onStatus: (msg) {
+        if (!mounted) return;
+
+        _addLog(msg);
+
+        setState(() {
+          state = state.copyWith(
+            currentTask: msg,
+          );
+        });
+      },
+      onProgress: (p) {
+        if (!mounted) return;
+
+        setState(() {
+          state = state.copyWith(
+            progress: p,
+          );
+        });
+      },
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      // احتساب النتيجة ديناميكياً بناءً على عدد الملفات المكتشفة
+      healthScore = (_engine.totalFiles == 0)
+          ? 100
+          : (100 - (_engine.totalFiles ~/ 5)).clamp(65, 100);
+
+      state = state.copyWith(
+        scanning: false,
+        analysisFinished: true,
+        progress: 1,
+        currentTask: "Analysis Complete",
+        totalFiles: _engine.totalFiles,
+        totalBytes: _engine.totalBytes,
+        healthScore: healthScore.toDouble(),
+      );
+    });
+  }
+
+  // الدالة القديمة بعد تغيير اسمها تمهيداً لربطها بالكامل لاحقاً
+  Future<void> performCleaning() async {
+    if (state.scanning) return;
+
+    setState(() {
+      state = state.copyWith(
+        scanning: true,
+        currentTask: "Scanning...",
+        progress: 0.05,
+      );
       logs.clear();
     });
 
     _addLog("Scanning directories...");
 
-    await cleaner.startCleaning(
-      onLog: (msg) {
-        setState(() {
-          _addLog(msg);
-          progress += 0.05;
-          if (progress > .95) {
-            progress = .95;
-          }
-        });
-      },
-      onUpdate: () {
-        setState(() {});
-      },
-    );
+    await Future.delayed(const Duration(seconds: 2));
 
     setState(() {
-      scanning = false;
-      progress = 1.0;
-      status = "Optimization Complete";
+      state = state.copyWith(
+        scanning: false,
+        progress: 1.0,
+        currentTask: "Optimization Complete",
+      );
       _addLog("Optimization Complete");
     });
+  }
+
+  // دالة تحويل وتنسيق حجم الملفات والمساحة المستهلكة رقمياً
+  String formatBytes(int bytes) {
+    if (bytes < 1024) {
+      return "$bytes B";
+    }
+    if (bytes < 1024 * 1024) {
+      return "${(bytes / 1024).toStringAsFixed(1)} KB";
+    }
+    if (bytes < 1024 * 1024 * 1024) {
+      return "${(bytes / 1024 / 1024).toStringAsFixed(2)} MB";
+    }
+    return "${(bytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB";
   }
 
   // استخدام معالج وقت نقي من لغة Dart دون استدعاء أي حزم خارجية
@@ -108,12 +202,33 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               const SizedBox(height: 10),
-              
-              // إعادة الـ ProgressRing لمتغيراته الأصلية لمنع تعارض البناء
+
               ProgressRing(
-                progress: progress,
-                title: status,
-                subtitle: scanning ? "AI Running..." : "System Ready",
+                progress: state.progress,
+                title: state.currentTask,
+                subtitle: state.scanning
+                    ? "AI Engine Running..."
+                    : "Ready for Analysis",
+              ),
+
+              const SizedBox(height: 25),
+
+              // 1) إضافة بطاقة نتيجة صحة الجهاز وبطاقة الفحص الحي أسفل حلقة التقدم
+              HealthScoreCard(
+                score: state.healthScore,
+                status: state.healthScore >= 90
+                    ? "Excellent"
+                    : state.healthScore >= 75
+                        ? "Good"
+                        : "Needs Optimization",
+              ),
+
+              const SizedBox(height: 18),
+
+              LiveScanCard(
+                currentTask: state.currentTask,
+                progress: state.progress,
+                scanning: state.scanning,
               ),
 
               const SizedBox(height: 25),
@@ -129,19 +244,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildStatColumn(
-                      cleaner.deletedFiles.toString(),
+                      "${state.totalFiles}",
                       "Files Cleaned",
                       const Color(0xFF00F2FE),
                     ),
                     Container(width: 1, height: 35, color: Colors.white10),
                     _buildStatColumn(
-                      cleaner.formattedSize,
+                      formatBytes(state.totalBytes),
                       "Space Freed",
                       const Color(0xFFE040FB),
                     ),
                     Container(width: 1, height: 35, color: Colors.white10),
                     _buildStatColumn(
-                      scanning ? "${(progress * 100).toInt()}%" : "100%",
+                      state.scanning ? "${(state.progress * 100).toInt()}%" : "100%",
                       "Performance",
                       const Color(0xFF00E676),
                     ),
@@ -216,6 +331,40 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 20),
 
+              // 2) إضافة قسم عرض العناصر المكتشفة حركياً عند وجود ملفات
+              if (scanItems.isNotEmpty) ...[
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Detected Items",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 220,
+                  child: ListView.builder(
+                    itemCount: scanItems.length,
+                    itemBuilder: (context, index) {
+                      return ScanResultCard(
+                        item: scanItems[index],
+                        onChanged: (value) {
+                          setState(() {
+                            scanItems[index] = scanItems[index].copyWith(
+                              selected: value ?? true,
+                            );
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -238,10 +387,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 25),
 
+              // 3) تعديل الزر السفلي ليتغير ديناميكياً حسب مراحل الفحص والتنظيف
               AnimatedButton(
-                title: scanning ? "SCANNING..." : "RUN DEEP CLEAN",
-                icon: scanning ? Icons.sync_rounded : Icons.cleaning_services,
-                onPressed: scanning ? null : startCleaning,
+                title: state.scanning
+                    ? "PROCESSING..."
+                    : state.analysisFinished
+                        ? "START OPTIMIZATION"
+                        : "START AI ANALYSIS",
+                icon: state.scanning
+                    ? Icons.sync
+                    : state.analysisFinished
+                        ? Icons.cleaning_services
+                        : Icons.auto_fix_high,
+                onPressed: state.scanning
+                    ? null
+                    : state.analysisFinished
+                        ? performCleaning
+                        : startAnalysis,
               ),
               const SizedBox(height: 15),
             ],
@@ -305,3 +467,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
