@@ -1,4 +1,4 @@
-import 'package:flutter_cleaner_app/services/models/scan_item.dart'; // 👈 تعديل الاستيراد إلى مطلق
+import 'package:flutter_cleaner_app/services/scan_item.dart';
 import 'package:flutter_cleaner_app/services/plugins/thumbnail_cleaner.dart';
 
 class CleanerEngine {
