@@ -1,4 +1,4 @@
-import 'package:flutter_cleaner_app/services/models/scan_item.dart'; // 👈 استيراد مطلق ومباشر
+import 'package:flutter_cleaner_app/services/scan_item.dart';
 
 class ThumbnailCleaner {
   /// قائمة النتائج المحلية
