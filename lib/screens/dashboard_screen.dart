@@ -31,7 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // 3) إضافة كائن الحالة الموحد مكان المتغيرات القديمة المحذوفة
   DashboardState state = const DashboardState();
 
-  // دالة بدء الفحص والتحليل الرقمي
+  // دالة بدء الفحص والتحليل الرقمي المحمية بالكامل
   Future<void> startAnalysis() async {
     if (state.scanning) return;
 
@@ -57,25 +57,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
       },
     );
 
+    // استدعاء الفحص مع إضافة حماية !mounted داخل الكولباكس الحية
     scanItems = await _engine.scan(
       onStatus: (msg) {
+        if (!mounted) return;
+
         setState(() {
-          state = state.copyWith(currentTask: msg);
+          state = state.copyWith(
+            currentTask: msg,
+          );
         });
       },
       onProgress: (p) {
+        if (!mounted) return;
+
         setState(() {
-          state = state.copyWith(progress: p);
+          state = state.copyWith(
+            progress: p,
+          );
         });
       },
     );
 
-    // 5) استبدال الحالة بعد انتهاء الفحص بالكامل وتخزين الإحصائيات المستخرجة
+    // التحقق الآمن بعد انتهاء الفحص لتحديث الواجهة بالإحصائيات النهائية
+    if (!mounted) return;
+
     setState(() {
       state = state.copyWith(
         scanning: false,
         analysisFinished: true,
-        progress: 1,
+        progress: 1.0,
         currentTask: "Analysis Complete",
         totalFiles: _engine.totalFiles,
         totalBytes: _engine.totalBytes,
@@ -413,3 +424,4 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
+
