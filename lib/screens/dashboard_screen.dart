@@ -47,7 +47,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     await _pipeline.start(
       onStage: (stage, p, message) async {
-        // 5) استبدال الحالة داخل onStage للتحديث التدريجي للمراحل
+        // [تم التصحيح] إضافة حماية لمنع الانهيار أثناء تحديث مراحل الأنبوب
+        if (!mounted) return;
+        
         setState(() {
           state = state.copyWith(
             progress: p,
@@ -133,11 +135,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final deleted = await _engine.clean(
       selected: selected,
       onStatus: (msg) {
+        // [تم التصحيح] إضافة حماية لمنع الانهيار أثناء تحديث نصوص التنظيف الحية
+        if (!mounted) return;
+
         setState(() {
           state = state.copyWith(currentTask: msg);
         });
       },
     );
+
+    // [تم التصحيح] نقل شرط الحماية هنا فوراً بعد الـ await وقبل أي setState لحماية التطبيق
+    if (!mounted) return;
 
     // 6) استبدال الحالة بعد انتهاء التنظيف لتفريغ العدادات وتصفير لوحة التحكم
     setState(() {
@@ -152,8 +160,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         totalBytes: 0,
       );
     });
-
-    if (!mounted) return;
 
     showDialog(
       context: context,
