@@ -5,7 +5,7 @@ import '../widgets/health_score_card.dart';
 import '../widgets/live_scan_card.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/info_tile.dart';
-import '../widgets/scan_result_card.dart'; // الاستيراد الجديد لكارد عرض نتائج الفحص
+import '../widgets/scan_result_card.dart';
 
 // الاستيرادات الخاصة بمحرك الفحص
 import '../services/cleaner_engine.dart';
@@ -90,7 +90,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return "${(bytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB";
   }
 
-  // دالة التنظيف وحذف الملفات المحددة
+  // دالة التنظيف وحذف الملفات المحددة مع إعادة تعيين الحالة
   Future<void> startCleaning() async {
     final selected = scanItems.where((e) => e.selected).toList();
 
@@ -120,25 +120,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     setState(() {
       scanning = false;
-      progress = 1;
       currentTask = "Optimization Complete";
+      
+      // تفريغ البيانات وإعادة تهيئة الواجهة لفحص جديد
+      scanItems.clear();
+      analysisFinished = false;
+      totalFiles = 0;
+      totalBytes = 0;
+      progress = 0;
     });
 
     if (!mounted) return;
 
+    // تحسين رسالة النجاح بشكل عصري ومميز
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("Completed"),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Row(
+          children: [
+            Icon(
+              Icons.check_circle,
+              color: Colors.green,
+            ),
+            SizedBox(width: 10),
+            Text("Optimization Complete"),
+          ],
+        ),
         content: Text(
-          "$deleted files removed successfully.",
+          "Successfully removed $deleted files.\n\nYour device has been optimized.",
         ),
         actions: [
-          TextButton(
+          FilledButton(
             onPressed: () {
               Navigator.pop(context);
             },
-            child: const Text("OK"),
+            child: const Text("Done"),
           ),
         ],
       ),
@@ -308,7 +327,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
 
-              // عرض القائمة المكتشفة هنا بناءً على الشرط المضاف
+              // قسم عرض العناصر المكتشفة
               if (scanItems.isNotEmpty) ...[
                 const SizedBox(height: 25),
                 const Text(
@@ -335,17 +354,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const SizedBox(height: 25),
               
-              // زر الإجراء السفلي
+              // الزر الذكي الجديد والديناميكي بالكامل
               SizedBox(
                 width: double.infinity,
-                height: 60,
+                height: 62,
                 child: ElevatedButton.icon(
-                  onPressed: scanning ? null : startAnalysis,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: analysisFinished
+                        ? Colors.green
+                        : AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  onPressed: scanning
+                      ? null
+                      : analysisFinished
+                          ? startCleaning
+                          : startAnalysis,
                   icon: Icon(
-                    scanning ? Icons.sync : Icons.auto_fix_high,
+                    scanning
+                        ? Icons.sync
+                        : analysisFinished
+                            ? Icons.cleaning_services
+                            : Icons.auto_fix_high,
                   ),
                   label: Text(
-                    scanning ? "Analyzing..." : "START AI ANALYSIS",
+                    scanning
+                        ? "PROCESSING..."
+                        : analysisFinished
+                            ? "START OPTIMIZATION"
+                            : "START AI ANALYSIS",
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -361,4 +400,3 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 }
-
