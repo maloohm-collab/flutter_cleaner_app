@@ -20,15 +20,21 @@ class CleanerEngine {
   /// عدد العناصر المكتشفة
   int get totalItems => _results.length;
 
+  // إضافة دفق التقدم الحركي لمحاكاة السلاسة البصرية
+  Stream<double> scanProgress() async* {
+    const steps = 100;
+
+    for (int i = 0; i <= steps; i++) {
+      await Future.delayed(const Duration(milliseconds: 25));
+      yield i / steps;
+    }
+  }
+
   /// بدء الفحص
   Future<List<ScanItem>> scan({
-
     Function(String message)? onStatus,
-
     Function(double progress)? onProgress,
-
   }) async {
-
     _results.clear();
 
     onStatus?.call("Scanning Thumbnail Cache...");
@@ -47,13 +53,9 @@ class CleanerEngine {
 
   /// بدء التنظيف
   Future<int> clean({
-
     required List<ScanItem> selected,
-
     Function(String message)? onStatus,
-
   }) async {
-
     int deleted = 0;
 
     final thumbnails = selected
@@ -61,7 +63,6 @@ class CleanerEngine {
         .toList();
 
     if (thumbnails.isNotEmpty) {
-
       onStatus?.call("Cleaning Thumbnail Cache...");
 
       deleted += await _thumbnailCleaner.clean(
