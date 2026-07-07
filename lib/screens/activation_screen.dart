@@ -147,37 +147,25 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
                       const SizedBox(height: 40),
 
+                      // -- القسم الجديد: القيمة المضافة للتطبيق --
                       Container(
-                        padding: const EdgeInsets.all(18),
+                        padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.04),
                           borderRadius: BorderRadius.circular(22),
                           border: Border.all(color: Colors.white.withOpacity(0.08)),
                         ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              "Quick Access",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildQuickAccessItem(Icons.search, "Smart Scan"),
-                                _buildQuickAccessItem(Icons.delete_outline, "Junk Clean"),
-                                _buildQuickAccessItem(Icons.speed, "Memory Boost"),
-                                _buildQuickAccessItem(Icons.battery_charging_full, "Battery Saver"),
-                              ],
-                            ),
+                            _buildFeatureRow(Icons.auto_awesome, "AI Deep Scan", "Identify junk files with precision"),
+                            const Divider(color: Colors.white10, height: 25),
+                            _buildFeatureRow(Icons.speed, "Performance Boost", "Optimize system memory instantly"),
+                            const Divider(color: Colors.white10, height: 25),
+                            _buildFeatureRow(Icons.security, "Privacy Shield", "Keep your data secure & private"),
                           ],
                         ),
                       ).animate().fade(delay: 700.ms).slideY(begin: 0.15),
+                      // ----------------------------------------
 
                       const SizedBox(height: 35),
 
@@ -208,26 +196,22 @@ class _ActivationScreenState extends State<ActivationScreen> {
     );
   }
 
-  Widget _buildQuickAccessItem(IconData icon, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+  // ويدجت لعرض الميزات بشكل أنيق
+  Widget _buildFeatureRow(IconData icon, String title, String subtitle) {
+    return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.white.withOpacity(0.04)),
+        Icon(icon, color: const Color(0xFF00F2FE), size: 24),
+        const SizedBox(width: 15),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+            ],
           ),
-          child: Icon(icon, color: const Color(0xFF00F2FE), size: 22),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 11),
         ),
       ],
     );
   }
 }
-
