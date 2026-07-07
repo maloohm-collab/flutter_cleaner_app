@@ -11,6 +11,9 @@ import '../utils/colors.dart';
 import '../widgets/animated_button.dart';
 import '../widgets/progress_ring.dart';
 
+import 'dashboard_screen.dart';
+import 'settings_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -29,8 +32,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   bool _hasScanned = false;
   bool _isOptimized = false;
-  bool _isCleaning = false; // فصل حالة التنظيف عن الفحص لمنع تداخل الواجهات
+  bool _isCleaning = false; 
   int healthScore = 100;
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -100,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // دالة التنظيف العميقة المحسنة - إصلاح جذري للتزامن والـ Progress
+  // دالة التنظيف العميقة المحسنة
   Future<void> performCleaning() async {
     if (state.scanning || _isCleaning) return;
 
@@ -150,7 +154,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (shouldClean != true) return;
 
-    // تفعيل حالة التنظيف لمنع التداخلات الرسومية وتصفير العداد ليعلو تدريجياً بشكل حقيقي
     setState(() {
       _isCleaning = true;
       state = state.copyWith(
@@ -167,14 +170,12 @@ class _HomeScreenState extends State<HomeScreen> {
       onStatus: (msg) {
         if (!mounted) return;
         _addLog(msg);
-        // نمنع المحرك من فرض جملة النهاية باكراً حتى ينتهي الـ Progress الرسومي
         if (msg != "Optimization Complete.") {
           setState(() { state = state.copyWith(currentTask: msg); });
         }
       },
     );
 
-    // تحريك المؤشر بشكل تصاعدي حقيقي متزامن مع نصوص واضحة للمستخدم
     final List<String> cleanSteps = [
       "Purging Thumbnail Cache...",
       "Clearing Media Garbage...",
@@ -196,7 +197,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted) return;
 
-    // إنهاء العملية بشكل كامل موحد في نفس اللحظة للأزرار والنصوص والبطاقات
     setState(() {
       scanItems.clear();
       _isOptimized = true;
@@ -289,9 +289,40 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            ListTile(leading: const Icon(Icons.shield_outlined, color: Colors.white70), title: const Text("AI Deep Shield", style: TextStyle(color: Colors.white)), onTap: (){}),
-            ListTile(leading: const Icon(Icons.history_toggle_off_rounded, color: Colors.white70), title: const Text("Cleaning History", style: TextStyle(color: Colors.white)), onTap: (){}),
-            ListTile(leading: const Icon(Icons.info_outline_rounded, color: Colors.white70), title: const Text("About Engine", style: TextStyle(color: Colors.white)), onTap: (){}),
+            ListTile(
+              leading: const Icon(Icons.shield_outlined, color: Colors.white70), 
+              title: const Text("AI Deep Shield", style: TextStyle(color: Colors.white)), 
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.history_toggle_off_rounded, color: Colors.white70), 
+              title: const Text("Cleaning History", style: TextStyle(color: Colors.white)), 
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Cleaning History will be implemented.")),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline_rounded, color: Colors.white70), 
+              title: const Text("About Engine", style: TextStyle(color: Colors.white)), 
+              onTap: () {
+                Navigator.pop(context);
+                showAboutDialog(
+                  context: context,
+                  applicationName: "AI Optimizer",
+                  applicationVersion: "1.0.0",
+                  applicationLegalese: "© Mohammad Malooh",
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -310,7 +341,9 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFD700), size: 24),
-            onPressed: _showPremiumSheet,
+            onPressed: () {
+              _showPremiumSheet();
+            },
           ),
         ],
       ),
@@ -407,7 +440,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                   const Text("Live AI Core Logs", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                                   TextButton(
                                     style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const DashboardScreen(),
+                                        ),
+                                      );
+                                    },
                                     child: const Text("View All >", style: TextStyle(color: Color(0xFF4FACFE), fontSize: 12)),
                                   ),
                                 ],
@@ -452,10 +492,47 @@ class _HomeScreenState extends State<HomeScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                                 children: [
-                                  _buildInteractiveTool(Icons.cleaning_services_outlined, "Deep Clean"),
-                                  _buildInteractiveTool(Icons.folder_open_outlined, "Large Files"),
-                                  _buildInteractiveTool(Icons.copy_all_outlined, "Duplicates"),
-                                  _buildInteractiveTool(Icons.developer_mode_outlined, "App Manager"),
+                                  _buildInteractiveTool(
+                                    Icons.cleaning_services_outlined,
+                                    "Deep Clean",
+                                    performCleaning,
+                                  ),
+                                  _buildInteractiveTool(
+                                    Icons.folder_open_outlined,
+                                    "Large Files",
+                                    () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const DashboardScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  _buildInteractiveTool(
+                                    Icons.copy_all_outlined,
+                                    "Duplicates",
+                                    () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const DashboardScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  _buildInteractiveTool(
+                                    Icons.developer_mode_outlined,
+                                    "App Manager",
+                                    () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const SettingsScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ],
                               ),
                             ],
@@ -497,9 +574,41 @@ class _HomeScreenState extends State<HomeScreen> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFF00F2FE),
         unselectedItemColor: Colors.white38,
-        currentIndex: 0,
+        currentIndex: _currentIndex,
         selectedFontSize: 10,
         unselectedFontSize: 10,
+        onTap: (index) {
+          setState(() => _currentIndex = index);
+
+          switch (index) {
+            case 0:
+              break;
+
+            case 1:
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Tools module coming next")),
+              );
+              break;
+
+            case 2:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const DashboardScreen(),
+                ),
+              );
+              break;
+
+            case 3:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SettingsScreen(),
+                ),
+              );
+              break;
+          }
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded, size: 20), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.construction_rounded, size: 20), label: "Tools"),
@@ -615,14 +724,33 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildInteractiveTool(IconData icon, String label) {
+  Widget _buildInteractiveTool(IconData icon, String label, VoidCallback onTap) {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Launching $label module..."), duration: const Duration(milliseconds: 600)),
-        );
-      },
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.02),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: Icon(icon, color: const Color(0xFF00F2FE), size: 18),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAccessItem(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -642,4 +770,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
