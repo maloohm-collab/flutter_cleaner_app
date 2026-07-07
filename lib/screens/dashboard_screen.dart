@@ -10,7 +10,7 @@ import '../widgets/scan_result_card.dart';
 // الاستيرادات الخاصة بمحرك الفحص
 import '../services/cleaner_engine.dart';
 import '../services/scan_pipeline.dart';
-import '../services/models/scan_item.dart';
+import '../services/scan_item.dart';
 
 // 1) إضافة استيراد حالة لوحة التحكم الموحدة
 import '../models/dashboard_state.dart';
