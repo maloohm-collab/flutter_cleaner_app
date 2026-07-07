@@ -149,10 +149,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (shouldClean != true) return;
 
-    // الدخول في حالة التنظيف الفوري وقفل الأزرار بشكل صحيح
     setState(() {
       state = state.copyWith(
-        scanning: true, // تفعيل المؤشر الحركي للتنظيف
+        scanning: true, 
         analysisFinished: false,
         currentTask: "Executing deep clean...",
         progress: 0.2,
@@ -169,7 +168,6 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
-    // محاكاة رقمية سريعة ومحكمة لإنهاء شريط التقدم بلمسة سينمائية
     for (double p = 0.4; p <= 1.0; p += 0.2) {
       await Future.delayed(const Duration(milliseconds: 100));
       if (!mounted) return;
@@ -178,15 +176,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted) return;
 
-    // حـل الـ Bug الرئيسي: إغلاق حالة الـ scanning فوراً وتصفير العدادات وتحديث راية التحسين
     setState(() {
       scanItems.clear();
       _isOptimized = true;
       _hasScanned = true;
-      healthScore = 100; // الآن فقط يصح أن يصبح 100% ممتاز
+      healthScore = 100; 
       
       state = state.copyWith(
-        scanning: false, // تحرير الزر من حالة PROCESSING... عـلـى الـفـور
+        scanning: false, 
         analysisFinished: false,
         progress: 0.0,
         currentTask: "System Fully Optimized!",
@@ -214,7 +211,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // نافذة الاشتراك المميز المنبثقة التفاعلية لإحياء الزر العلوي
   void _showPremiumSheet() {
     showModalBottomSheet(
       context: context,
@@ -254,7 +250,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppColors.background,
-      // قائمة جانبية حقيقية لإحياء زر القائمة
       drawer: Drawer(
         backgroundColor: const Color(0xFF090D1A),
         child: ListView(
@@ -272,9 +267,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-            ListTile(leading: const Icon(Icons.shield_outlined, color: Colors.white70), title: const Text("AI Deep Shield", style: TextStyle(color: Colors.white)), onPressed: (){}),
-            ListTile(leading: const Icon(Icons.history_toggle_off_rounded, color: Colors.white70), title: const Text("Cleaning History", style: TextStyle(color: Colors.white)), onPressed: (){}),
-            ListTile(leading: const Icon(Icons.info_outline_rounded, color: Colors.white70), title: const Text("About Engine", style: TextStyle(color: Colors.white)), onPressed: (){}),
+            // تم إصلاح الـ Bug هنا: تحويل onPressed إلى onTap ليتوافق مع الـ ListTile القياسي في فلوتر
+            ListTile(leading: const Icon(Icons.shield_outlined, color: Colors.white70), title: const Text("AI Deep Shield", style: TextStyle(color: Colors.white)), onTap: (){}),
+            ListTile(leading: const Icon(Icons.history_toggle_off_rounded, color: Colors.white70), title: const Text("Cleaning History", style: TextStyle(color: Colors.white)), onTap: (){}),
+            ListTile(leading: const Icon(Icons.info_outline_rounded, color: Colors.white70), title: const Text("About Engine", style: TextStyle(color: Colors.white)), onTap: (){}),
           ],
         ),
       ),
@@ -305,7 +301,6 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const SizedBox(height: 5),
 
-              // 1. حلقة التقدم المركزية
               ProgressRing(
                 progress: state.progress,
                 title: state.currentTask,
@@ -314,7 +309,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 12),
 
-              // 2. الكروت الجانبية المحدثة هندسياً والمحمية من التداخل والقطع البصري
               Row(
                 children: [
                   Expanded(child: _buildDynamicHealthCard()),
@@ -325,7 +319,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 12),
 
-              // 3. شريط الأرقام الإحصائي المدمج
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
                 decoration: BoxDecoration(
@@ -347,7 +340,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 12),
 
-              // 4. منطقة العرض الذكية الديناميكية المتبادلة بالكامل لقفل المساحة الملمومة
               Expanded(
                 child: scanItems.isNotEmpty
                     ? Column(
@@ -438,7 +430,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 12),
 
-              // 5. زر آلة الحالة الذكي والمحمي تماماً من التعليق العشوائي والتضارب البصري
               AnimatedButton(
                 title: state.scanning
                     ? "PROCESSING DEEP CLEAN..."
@@ -483,7 +474,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // كارت الصحة الديناميكي المطور محلياً لحل مشكلة الرقم الثابت والتداخل البصري
   Widget _buildDynamicHealthCard() {
     String scoreText = "--";
     String descText = "Scan Required";
@@ -520,7 +510,8 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           const Text("AI HEALTH", style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
           const SizedBox(height: 4),
-          Text(scoreText, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.black, height: 1.1)),
+          // تم إصلاح الـ Bug هنا: استبدال FontWeight.black بـ FontWeight.w900 الفعلي في محرك فلوتر
+          Text(scoreText, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, height: 1.1)),
           const SizedBox(height: 2),
           Text(descText, style: TextStyle(color: txtColor, fontSize: 11, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
         ],
@@ -528,7 +519,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // كارت الحالة والمسار المطور محلياً لمنع الاختناق النصي والتداخل
   Widget _buildDynamicStatusCard() {
     String statusTitle = "MONITOR";
     String statusSub = state.scanning ? "Optimizing Channels" : (_isOptimized ? "Secure" : "Idle State");
@@ -585,7 +575,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // أداة ذكية متفاعلة وموحدة الأيقونات والأحجام بشكل نيون فاخر
   Widget _buildInteractiveTool(IconData icon, String label) {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -613,3 +602,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
