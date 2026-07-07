@@ -3,13 +3,15 @@ import '../utils/colors.dart';
 
 class HealthScoreCard extends StatelessWidget {
   final double score;
+  final String? status; // إضافة معامل اختياري لاستقبال الحالة المرسلة
 
   const HealthScoreCard({
     super.key,
     required this.score,
+    this.status, // تعريف المعامل في الكونستركتور
   });
 
-  // دالة ذكية لتحديد حالة الجهاز ديناميكياً ولحظياً بناءً على النتيجة
+  // دالة ذكية لتحديد حالة الجهاز ديناميكياً
   String _getHealthStatus(double healthScore) {
     if (healthScore >= 85) return "Excellent";
     if (healthScore >= 70) return "Good";
@@ -17,7 +19,7 @@ class HealthScoreCard extends StatelessWidget {
     return "Action Required";
   }
 
-  // دالة لتغيير لون خلفية الحالة حسب خطورة الوضع
+  // دالة لتغيير لون خلفية الحالة
   Color _getStatusColor(double healthScore) {
     if (healthScore >= 85) return Colors.white24;
     if (healthScore >= 70) return Colors.white12;
@@ -27,6 +29,9 @@ class HealthScoreCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // نستخدم الحالة المرسلة إذا وجدت (status)، وإلا نستخدم الحساب التلقائي (_getHealthStatus)
+    final String displayStatus = status ?? _getHealthStatus(score);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(22),
@@ -71,7 +76,7 @@ class HealthScoreCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(25),
             ),
             child: Text(
-              _getHealthStatus(score),
+              displayStatus, // استخدام المتغير الموحد للعرض
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
