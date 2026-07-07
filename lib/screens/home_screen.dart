@@ -320,7 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   context: context,
                   applicationName: "AI Optimizer",
                   applicationVersion: "1.0.0",
-                  applicationLegalese: "© Mohammad Malooh",
+                  applicationLegalese: "© Mohammad Ghazi Abdullah Mallouh",
                 );
               },
             ),
