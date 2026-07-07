@@ -6,6 +6,7 @@ import 'package:flutter_cleaner_app/services/scan_pipeline.dart';
 import 'package:flutter_cleaner_app/services/scan_item.dart'; 
 import 'package:flutter_cleaner_app/models/dashboard_state.dart';
 import 'package:flutter_cleaner_app/widgets/scan_result_card.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../utils/colors.dart';
 import '../widgets/animated_button.dart';
