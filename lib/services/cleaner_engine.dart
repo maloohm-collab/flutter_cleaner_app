@@ -5,9 +5,9 @@ class CleanerEngine {
   final List<ScanItem> _results = [];
   final List<File> _discoveredFiles = [];
 
-  // قائمة امتدادات الملفات التي نعتبرها نفايات (يمكنك إضافة المزيد)
+  // قائمة امتدادات الملفات التي نعتبرها نفايات
   final List<String> junkExtensions = [
-    '.tmp', '.log', '.cache', '.bak', '.temp', '.trash'
+    '.tmp', '.log', '.cache', '.bak', '.temp', '.trash', '.old'
   ];
 
   List<ScanItem> get results => List.unmodifiable(_results);
@@ -16,10 +16,11 @@ class CleanerEngine {
   int get totalBytes => _results.fold<int>(0, (sum, item) => sum + item.bytes);
   int get totalItems => _results.length;
 
+  /// الحصول على مسارات الفحص المحددة يدوياً
   Future<List<Directory>> getScanDirectories() async {
     return [
       Directory("/storage/emulated/0/Download"),
-      Directory("/storage/emulated/0/DCIM/.thumbnails"),
+      Directory("/storage/emulated/0/DCIM"),
       Directory("/storage/emulated/0/Pictures"),
       Directory("/storage/emulated/0/Movies"),
       Directory("/storage/emulated/0/Android/media"),
@@ -56,12 +57,12 @@ class CleanerEngine {
           if (entity is File) {
             try {
               final fileSize = await entity.length();
-              final fileName = entity.path.toLowerCase();
+              final path = entity.path.toLowerCase();
               
               // الشروط التي تجعل الملف "نفايات" (Junk)
-              final bool isThumbnail = entity.path.contains('/.thumbnails/');
+              final bool isThumbnail = path.contains('/.thumbnails/');
               final bool isEmpty = fileSize == 0;
-              final bool isJunkExt = junkExtensions.any((ext) => fileName.endsWith(ext));
+              final bool isJunkExt = junkExtensions.any((ext) => path.endsWith(ext));
 
               // الإضافة للقائمة تتم فقط إذا كان الملف ضمن شروط المهملات
               if (isThumbnail || isEmpty || isJunkExt) {
@@ -135,3 +136,4 @@ class CleanerEngine {
     return deletedCount;
   }
 }
+
