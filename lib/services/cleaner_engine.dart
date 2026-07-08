@@ -1,8 +1,5 @@
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter_cleaner_app/services/scan_item.dart';
-import 'package:external_path/external_path.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 
 class CleanerEngine {
   final List<ScanItem> _results = [];
@@ -14,25 +11,16 @@ class CleanerEngine {
   int get totalBytes => _results.fold<int>(0, (sum, item) => sum + item.bytes);
   int get totalItems => _results.length;
 
-  /// الحصول على مسارات الفحص المتقدمة
+  /// الحصول على مسارات الفحص المحددة يدوياً
   Future<List<Directory>> getScanDirectories() async {
-    final List<Directory> dirs = [];
-    
-    try {
-      final root = await ExternalPath.getExternalStoragePublicDirectory(
-        ExternalPath.DIRECTORY_DOWNLOADS,
-      );
-      dirs.add(Directory(root));
-
-      // المسارات الثابتة المحددة
-      dirs.add(Directory("/storage/emulated/0/DCIM/.thumbnails"));
-      dirs.add(Directory("/storage/emulated/0/Android/media"));
-      dirs.add(Directory("/storage/emulated/0/Android/data"));
-    } catch (e) {
-      print("Error fetching directories: $e");
-    }
-
-    return dirs;
+    return [
+      Directory("/storage/emulated/0/Download"),
+      Directory("/storage/emulated/0/DCIM/.thumbnails"),
+      Directory("/storage/emulated/0/Pictures"),
+      Directory("/storage/emulated/0/Movies"),
+      Directory("/storage/emulated/0/Android/media"),
+      Directory("/storage/emulated/0/Android/data"),
+    ];
   }
 
   Future<List<ScanItem>> scan({
@@ -43,10 +31,9 @@ class CleanerEngine {
     _discoveredFiles.clear();
 
     try {
-      onStatus?.call("Initializing AI System Paths...");
+      onStatus?.call("Initializing Scan...");
       onProgress?.call(0.1);
 
-      // الحصول على المجلدات الجديدة
       final directories = await getScanDirectories();
       
       int processed = 0;
@@ -87,7 +74,7 @@ class CleanerEngine {
       }
 
       onProgress?.call(1.0);
-      onStatus?.call("AI Scan Completed Successfully");
+      onStatus?.call("Scan Completed Successfully");
     } catch (e) {
       onStatus?.call("Scan interrupted: $e");
       onProgress?.call(1.0);
@@ -104,7 +91,7 @@ class CleanerEngine {
 
     if (selected.isEmpty) return 0;
 
-    onStatus?.call("Clearing identified cache directories...");
+    onStatus?.call("Cleaning selected directories...");
     final selectedPaths = selected.map((s) => s.path).toList();
 
     for (File file in List<File>.from(_discoveredFiles)) {
@@ -129,4 +116,3 @@ class CleanerEngine {
     return deletedCount;
   }
 }
-
