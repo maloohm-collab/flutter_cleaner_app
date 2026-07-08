@@ -1,206 +1,4 @@
 import 'package:flutter/material.dart';
-
-// الاستيرادات القياسية للمحرك والحالة الموحدة
-import 'package:flutter_cleaner_app/services/cleaner_engine.dart';
-import 'package:flutter_cleaner_app/services/scan_pipeline.dart';
-import 'package:flutter_cleaner_app/services/scan_item.dart'; 
-import 'package:flutter_cleaner_app/models/dashboard_state.dart';
-import 'package:flutter_cleaner_app/widgets/scan_result_card.dart';
-import 'package:permission_handler/permission_handler.dart';
-
-import '../utils/colors.dart';
-import '../widgets/animated_button.dart';
-import '../widgets/progress_ring.dart';
-
-import 'settings_screen.dart';
-
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  final CleanerEngine _engine = CleanerEngine();
-  final ScanPipeline _pipeline = ScanPipeline();
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  DashboardState state = const DashboardState();
-  List<ScanItem> scanItems = [];
-  final List<Map<String, String>> logs = [];
-
-  bool _hasScanned = false;
-  bool _isOptimized = false;
-  bool _isCleaning = false; 
-  int healthScore = 100;
-  int _currentIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    state = state.copyWith(
-      currentTask: "Tap Below to Scan System",
-      progress: 0,
-      healthScore: 100,
-    );
-  }
-
-  // دالة الفحص الذكي مع تحديث تدريجي وموزون للمؤشر
-  Future<void> startAnalysis() async {
-    // 1. التحقق من الصلاحيات
-    if (!await Permission.storage.request().isGranted &&
-        !await Permission.manageExternalStorage.request().isGranted) {
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Storage permission is required to scan files."),
-        ),
-      );
-      return;
-    }
-
-    // 2. التحقق من حالة الفحص
-    if (state.scanning || _isCleaning) return;
-
-    // 3. طلب صلاحيات الوسائط (للأندرويد الحديث)
-    await [
-      Permission.photos,
-      Permission.videos,
-      Permission.audio,
-    ].request();
-
-    // 4. ضبط حالة البداية (UI)
-    setState(() {
-      logs.clear();
-      _hasScanned = false;
-      _isOptimized = false;
-      state = state.copyWith(
-        scanning: true,
-        analysisFinished: false,
-        progress: 0.0,
-        currentTask: "Initializing AI Engine...",
-      );
-    });
-
-    // 5. بدء الـ Pipeline
-    await _pipeline.start(
-      onStage: (stage, progress, message) async {
-        if (!mounted) return;
-        setState(() {
-          state = state.copyWith(progress: progress * 0.3, currentTask: message);
-        });
-        _addLog(message);
-      },
-    );
-
-    // 6. بدء الفحص الحقيقي
-    scanItems = await _engine.scan(
-      onStatus: (msg) {
-        if (!mounted) return;
-        _addLog(msg);
-        setState(() { state = state.copyWith(currentTask: msg); });
-      },
-      onProgress: (p) {
-        if (!mounted) return;
-        setState(() { state = state.copyWith(progress: 0.3 + (p * 0.7)); });
-      },
-    );
-
-    // 7. إنهاء الفحص وتحديث الواجهة
-    if (!mounted) return;
-
-    setState(() {
-      _hasScanned = true;
-      healthScore = (_engine.totalFiles == 0)
-          ? 100
-          : (100 - (_engine.totalFiles ~/ 5)).clamp(55, 95);
-
-      state = state.copyWith(
-        scanning: false,
-        analysisFinished: true,
-        progress: 1.0,
-        currentTask: "Analysis Complete",
-        totalFiles: _engine.totalFiles,
-        totalBytes: _engine.totalBytes,
-        healthScore: healthScore.toDouble(),
-      );
-    });
-  }
-
-
-  // دالة التنظيف العميقة المحسنة
-  Future<void> performCleaning() async {
-    if (state.scanning || _isCleaning) return;
-
-    final selectedItems = scanItems.where((item) => item.selected).toList();
-    
-    if (selectedItems.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select at least one item to clean.")),
-      );
-      return;
-    }
-
-    bool? shouldClean = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF0E1326),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.white.withOpacity(0.08)),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Color(0xFFFFD700), size: 22),
-              SizedBox(width: 8),
-              Text("Confirm Deletion", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Text(
-            "Are you sure you want to permanently delete the selected files (${formatBytes(state.totalBytes.toInt())})?",
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text("Cancel", style: TextStyle(color: Colors.white38)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text("Clean Now", style: TextStyle(color: Color(0xFF00F2FE), fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (shouldClean != true) return;
-
-    setState(() {
-      _isCleaning = true;
-      state = state.copyWith(
-        scanning: false, 
-        analysisFinished: false,
-        currentTask: "Executing Deep Clean...",
-        progress: 0.1,
-      );
-      logs.clear();
-    });
-
-    await _engine.clean(
-      selected: selectedItems,
-      onStatus: (msg) {
-        if (!mounted) return;
-        _addLog(msg);
-        if (msg != "Optimization Complete.") {
-          setState(() { state = state.copyWith(currentTask: msg); });
-        }
-      },
-    );
-import 'package:flutter/material.dart';
 import 'package:flutter_cleaner_app/services/cleaner_engine.dart';
 import 'package:flutter_cleaner_app/services/scan_item.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -226,24 +24,22 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _scanning = false;
   bool _isCleaning = false;
   bool _hasScanned = false;
+  bool _isOptimized = false;
+  
   double _progress = 0.0;
   String _currentTask = "Tap Below to Scan System";
+  int _healthScore = 100;
+  int _currentIndex = 0;
   
   List<ScanItem> scanItems = [];
   final List<Map<String, String>> logs = [];
-  int _currentIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   // --- دوال التحكم ---
 
   Future<void> startAnalysis() async {
     if (!await Permission.storage.request().isGranted &&
         !await Permission.manageExternalStorage.request().isGranted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Permission required.")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Storage permission is required.")));
       return;
     }
 
@@ -252,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _progress = 0.0;
       _currentTask = "Initializing AI Engine...";
       logs.clear();
+      scanItems.clear();
     });
 
     scanItems = await _engine.scan(
@@ -271,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _hasScanned = true;
       _progress = 1.0;
       _currentTask = "Analysis Complete";
+      _healthScore = (_engine.totalFiles == 0) ? 100 : (100 - (_engine.totalFiles ~/ 5)).clamp(55, 95);
     });
   }
 
@@ -295,41 +93,23 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _isCleaning = false;
       _hasScanned = false;
+      _isOptimized = true;
       scanItems.clear();
-      _currentTask = "System Optimized!";
-      _progress = 0.0;
+      _currentTask = "System Fully Optimized!";
+      _progress = 1.0;
+      _healthScore = 100;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Optimization Complete!")));
   }
 
-  // --- دوال مساعدة للعرض ---
-
-  void _showDetectedFilesSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF0E1326),
-      builder: (_) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        builder: (_, controller) => ListView.builder(
-          controller: controller,
-          itemCount: _engine.discoveredFiles.length,
-          itemBuilder: (_, i) => ListTile(
-            leading: const Icon(Icons.insert_drive_file, color: Colors.white38),
-            title: Text(_engine.discoveredFiles[i].path.split('/').last, style: const TextStyle(color: Colors.white, fontSize: 12)),
-            subtitle: Text(_engine.discoveredFiles[i].path, style: const TextStyle(color: Colors.white54, fontSize: 10)),
-          ),
-        ),
-      ),
-    );
-  }
+  // --- دوال مساعدة ---
 
   void _addLog(String message) {
     final now = DateTime.now();
-    final timeStr = "${now.hour}:${now.minute}";
+    final timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
     setState(() {
-      logs.insert(0, {"time": timeStr, "message": message});
+      logs.insert(0, {"time": timeStr, "message": message.startsWith("[AI]") ? message : "[AI] $message"});
     });
   }
 
@@ -339,37 +119,50 @@ class _HomeScreenState extends State<HomeScreen> {
     return "${(bytes / 1024 / 1024).toStringAsFixed(2)} MB";
   }
 
-  // --- بناء الواجهة ---
+  // --- واجهة المستخدم ---
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppColors.background,
+      drawer: _buildDrawer(),
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        leading: IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => _scaffoldKey.currentState?.openDrawer()),
+        title: const Text("AI OPTIMIZER", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2)),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             children: [
-              const SizedBox(height: 20),
-              ProgressRing(progress: _progress, title: _currentTask, subtitle: "AI Engine"),
+              ProgressRing(progress: _progress, title: _currentTask, subtitle: _isCleaning ? "Purging Garbage..." : "AI Engine"),
+              
               const SizedBox(height: 20),
               
-              // الإحصائيات
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildStatColumn("${_engine.totalFiles}", "Files"),
-                  _buildStatColumn(formatBytes(_engine.totalBytes), "Size"),
+                  Expanded(child: _buildInfoCard("HEALTH", "$_healthScore%", const Color(0xFF00E676))),
+                  const SizedBox(width: 10),
+                  Expanded(child: _buildInfoCard("JUNK", formatBytes(_engine.totalBytes), const Color(0xFFFFD700))),
                 ],
               ),
               
               const SizedBox(height: 20),
 
               Expanded(
-                child: scanItems.isEmpty
-                    ? _buildLogsView()
-                    : _buildResultList(),
+                child: scanItems.isEmpty 
+                  ? _buildLogsView() 
+                  : ListView.builder(
+                      itemCount: scanItems.length,
+                      itemBuilder: (_, i) => ScanResultCard(
+                        item: scanItems[i],
+                        onChanged: (val) => setState(() => scanItems[i] = scanItems[i].copyWith(selected: val)),
+                      ),
+                    ),
               ),
 
               AnimatedButton(
@@ -385,23 +178,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildResultList() {
-    return Column(
-      children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          const Text("Detected Junk", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          TextButton(onPressed: _showDetectedFilesSheet, child: const Text("View All"))
-        ]),
-        Expanded(
-          child: ListView.builder(
-            itemCount: scanItems.length,
-            itemBuilder: (_, i) => ScanResultCard(
-              item: scanItems[i],
-              onChanged: (val) => setState(() => scanItems[i] = scanItems[i].copyWith(selected: val)),
-            ),
-          ),
-        ),
-      ],
+  Widget _buildInfoCard(String title, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
+      child: Column(children: [
+        Text(title, style: const TextStyle(color: Colors.white60, fontSize: 10)),
+        Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
+      ]),
     );
   }
 
@@ -415,11 +199,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildStatColumn(String val, String title) {
-    return Column(children: [
-      Text(val, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-      Text(title, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-    ]);
+  Widget _buildDrawer() {
+    return Drawer(
+      backgroundColor: const Color(0xFF090D1A),
+      child: Column(
+        children: [
+          const DrawerHeader(child: Center(child: Text("AI OPTIMIZER", style: TextStyle(color: Colors.white, fontSize: 20)))),
+          ListTile(title: const Text("Settings", style: TextStyle(color: Colors.white)), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
+          ListTile(title: const Text("About", style: TextStyle(color: Colors.white)), onTap: () => showAboutDialog(context: context, applicationName: "AI Optimizer")),
+        ],
+      ),
+    );
   }
 }
 
