@@ -1,20 +1,22 @@
+
 name: flutter_cleaner_app
 description: A Flutter app to clean temporary files
 publish_to: 'none'
+
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
-  dependencies:
   permission_handler: ^11.3.1
   path_provider: ^2.1.2
+  flutter_animate: ^4.5.0
   path: ^1.9.0
-  device_info_plus: ^11.1.0
+  device_info_plus: ^11.5.0
   external_path: ^2.2.0
 
 flutter:
