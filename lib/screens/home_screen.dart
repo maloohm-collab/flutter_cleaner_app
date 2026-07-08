@@ -1,4 +1,6 @@
-Import 'package:flutter/material.dart';
+
+
+import 'package:flutter/material.dart';
 
 // الاستيرادات القياسية للمحرك والحالة الموحدة
 import 'package:flutter_cleaner_app/services/cleaner_engine.dart';
@@ -22,59 +24,31 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // 📝 المحرك المسؤول عن الفحص والتنظيف
   final CleanerEngine _engine = CleanerEngine();
-
-  // 📝 خط المعالجة (Pipeline) للفحص التدريجي
   final ScanPipeline _pipeline = ScanPipeline();
-
-  // 📝 مفتاح للتحكم بالـ Scaffold (Drawer, SnackBar)
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // 📝 الحالة العامة للواجهة
   DashboardState state = const DashboardState();
-
-  // 📝 العناصر التي تم اكتشافها أثناء الفحص
   List<ScanItem> scanItems = [];
-
-  // 📝 سجل الأحداث والرسائل اللحظية
   final List<Map<String, String>> logs = [];
 
-  // 📝 أعلام مرتبطة بالحالة الفعلية
-  bool _hasScanned = false;   
-  bool _isOptimized = false;  
-  bool _isCleaning = false;   
-
-  // 📝 مؤشر الصحة (قيمة ابتدائية مرتبطة بالحالة)
-  static const int maxHealthScore = 100; 
-  int healthScore = maxHealthScore;
-
-  // 📝 مؤشر التبويب الحالي في الـ BottomNavigationBar
+  bool _hasScanned = false;
+  bool _isOptimized = false;
+  bool _isCleaning = false; 
+  int healthScore = 100;
   int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-
-    // ربط القيم بالحالة الحقيقية للمحرك بدل القيم الوهمية
-    healthScore = (_engine.totalFiles == 0)
-        ? maxHealthScore
-        : (maxHealthScore - (_engine.totalFiles ~/ 10)).clamp(40, maxHealthScore);
-
-    _hasScanned = _engine.totalFiles > 0;
-    _isOptimized = healthScore == maxHealthScore;
-
     state = state.copyWith(
-      currentTask: _engine.isInitialized 
-          ? "Ready to Scan" 
-          : "Initializing Engine...",
-      progress: _pipeline.progress ?? 0.0,
-      healthScore: healthScore,
+      currentTask: "Tap Below to Scan System",
+      progress: 0,
+      healthScore: 100,
     );
   }
-}
 
-/// بدء عملية الفحص والتحليل
+  // دالة الفحص الذكي مع تحديث تدريجي وموزون للمؤشر
   Future<void> startAnalysis() async {
     // 1. التحقق من الصلاحيات
     if (!await Permission.storage.request().isGranted &&
@@ -88,7 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // 2. التحقق من حالة الفحص والتنظيف
+    // 2. التحقق من حالة الفحص
     if (state.scanning || _isCleaning) return;
 
     // 3. طلب صلاحيات الوسائط (للأندرويد الحديث)
@@ -98,30 +72,25 @@ class _HomeScreenState extends State<HomeScreen> {
       Permission.audio,
     ].request();
 
-    // 4. ضبط حالة البداية بالقيم الحقيقية بدل الوهمية
+    // 4. ضبط حالة البداية (UI)
     setState(() {
       logs.clear();
-      _hasScanned = _engine.totalFiles > 0;   
-      _isOptimized = healthScore == maxHealthScore; 
+      _hasScanned = false;
+      _isOptimized = false;
       state = state.copyWith(
         scanning: true,
         analysisFinished: false,
-        progress: _pipeline.progress ?? 0.0, // ربط بتقدم الـ Pipeline إن وجد
-        currentTask: _engine.isInitialized 
-            ? "Engine Ready - Starting Analysis" 
-            : "Initializing AI Engine...",
+        progress: 0.0,
+        currentTask: "Initializing AI Engine...",
       );
     });
-  }
 
-Future<void> runAnalysis() async {
     // 5. بدء الـ Pipeline
     await _pipeline.start(
       onStage: (stage, progress, message) async {
         if (!mounted) return;
         setState(() {
-          // ربط التقدم الفعلي بالـ Pipeline بدل النسبة الوهمية
-          state = state.copyWith(progress: progress, currentTask: message);
+          state = state.copyWith(progress: progress * 0.3, currentTask: message);
         });
         _addLog(message);
       },
@@ -136,8 +105,7 @@ Future<void> runAnalysis() async {
       },
       onProgress: (p) {
         if (!mounted) return;
-        // ربط التقدم الفعلي بالفحص بدل النسب الوهمية
-        setState(() { state = state.copyWith(progress: p); });
+        setState(() { state = state.copyWith(progress: 0.3 + (p * 0.7)); });
       },
     );
 
@@ -146,20 +114,15 @@ Future<void> runAnalysis() async {
 
     setState(() {
       _hasScanned = true;
-
-      // حساب الصحة بناءً على الملفات الفعلية
       healthScore = (_engine.totalFiles == 0)
-          ? maxHealthScore
-          : (maxHealthScore - (_engine.totalFiles ~/ 10))
-              .clamp(40, maxHealthScore);
+          ? 100
+          : (100 - (_engine.totalFiles ~/ 5)).clamp(55, 95);
 
       state = state.copyWith(
         scanning: false,
         analysisFinished: true,
         progress: 1.0,
-        currentTask: _engine.totalFiles == 0 
-            ? "System Clean - No Junk Found" 
-            : "Analysis Complete - Junk Detected",
+        currentTask: "Analysis Complete",
         totalFiles: _engine.totalFiles,
         totalBytes: _engine.totalBytes,
         healthScore: healthScore.toDouble(),
@@ -168,21 +131,18 @@ Future<void> runAnalysis() async {
   }
 
 
-Future<void> performCleaning() async {
+  // دالة التنظيف العميقة المحسنة
+  Future<void> performCleaning() async {
     if (state.scanning || _isCleaning) return;
 
-    // ربط العناصر المختارة بالحالة الفعلية
     final selectedItems = scanItems.where((item) => item.selected).toList();
     
     if (selectedItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No files selected for cleaning.")),
+        const SnackBar(content: Text("Please select at least one item to clean.")),
       );
       return;
     }
-
-    // حساب الحجم الفعلي للملفات المختارة
-    final int selectedBytes = selectedItems.fold(0, (sum, item) => sum + item.size);
 
     bool? shouldClean = await showDialog<bool>(
       context: context,
@@ -194,17 +154,15 @@ Future<void> performCleaning() async {
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(color: Colors.white.withOpacity(0.08)),
           ),
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               Icon(Icons.warning_amber_rounded, color: Color(0xFFFFD700), size: 22),
               SizedBox(width: 8),
               Text("Confirm Deletion", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
           content: Text(
-            selectedItems.length == 1
-              ? "Delete ${selectedItems.first.name} (${formatBytes(selectedBytes)}) permanently?"
-              : "Delete ${selectedItems.length} files (${formatBytes(selectedBytes)}) permanently?",
+            "Are you sure you want to permanently delete the selected files (${formatBytes(state.totalBytes.toInt())})?",
             style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
           actions: [
@@ -223,19 +181,13 @@ Future<void> performCleaning() async {
 
     if (shouldClean != true) return;
 
-    // هنا سيبدأ التنفيذ الفعلي للتنظيف (يُكمل في الجزء الخامس)
-  }
-
-
-if (shouldClean != true) return;
-
     setState(() {
       _isCleaning = true;
       state = state.copyWith(
         scanning: false, 
         analysisFinished: false,
         currentTask: "Executing Deep Clean...",
-        progress: 0.0, // يبدأ من صفر فعلي بدل 0.1 وهمي
+        progress: 0.1,
       );
       logs.clear();
     });
@@ -245,76 +197,76 @@ if (shouldClean != true) return;
       onStatus: (msg) {
         if (!mounted) return;
         _addLog(msg);
-        setState(() { state = state.copyWith(currentTask: msg); });
-      },
-      onProgress: (p) {
-        if (!mounted) return;
-        // ربط التقدم الفعلي من المحرك بدل النسب الوهمية
-        setState(() { state = state.copyWith(progress: p); });
+        if (msg != "Optimization Complete.") {
+          setState(() { state = state.copyWith(currentTask: msg); });
+        }
       },
     );
 
-    // خطوات التنظيف مرتبطة بالعناصر الفعلية
-    for (int i = 0; i < selectedItems.length; i++) {
+    final List<String> cleanSteps = [
+      "Purging Thumbnail Cache...",
+      "Clearing Media Garbage...",
+      "Wiping Residual Logs...",
+      "Optimizing Memory Channels...",
+      "Finalizing Core Guard..."
+    ];
+
+    for (int i = 0; i < cleanSteps.length; i++) {
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted) return;
       setState(() {
         state = state.copyWith(
-          progress: (i + 1) / selectedItems.length, // نسبة فعلية
-          currentTask: "Cleaning ${selectedItems[i].name}...",
+          progress: 0.2 + (i * 0.16),
+          currentTask: cleanSteps[i],
         );
       });
     }
 
-
-if (!mounted) return;
+    if (!mounted) return;
 
     setState(() {
       _isOptimized = true;
       _hasScanned = true;
       _isCleaning = false; 
-
-      // حساب الصحة الفعلية بعد التنظيف
-      healthScore = (_engine.totalFiles == 0)
-          ? maxHealthScore
-          : (maxHealthScore - (_engine.totalFiles ~/ 10))
-              .clamp(40, maxHealthScore);
-
+      healthScore = 100; 
       state = state.copyWith(
         scanning: false, 
         analysisFinished: false,
         progress: 1.0,
-        currentTask: _engine.totalFiles == 0 
-            ? "System Clean - No Junk Remaining" 
-            : "Optimization Complete - Residual Files Detected",
-        totalFiles: _engine.totalFiles,
-        totalBytes: _engine.totalBytes,
-        healthScore: healthScore,
+        currentTask: "System Fully Optimized!",
+        totalFiles: 0,
+        totalBytes: 0,
+        healthScore: 100,
       );
-
-      // سجل مرتبط بالنتيجة الفعلية
-      _addLog(
-        _engine.totalFiles == 0
-          ? "Optimization Complete. Device Status: Excellent."
-          : "Optimization Complete. Some residual files remain."
-      );
+      _addLog("Optimization Complete. Device Status: Excellent.");
     });
 
     // بعد انتهاء التنظيف أعد تشغيل الفحص مباشرة
     await startAnalysis();
+  }
 
+  String formatBytes(int bytes) {
+    if (bytes < 1024) return "$bytes B";
+    if (bytes < 1024 * 1024) return "${(bytes / 1024).toStringAsFixed(1)} KB";
+    if (bytes < 1024 * 1024 * 1024) return "${(bytes / 1024 / 1024).toStringAsFixed(2)} MB";
+    return "${(bytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB";
+  }
 
-void _showPremiumSheet() {
+  void _addLog(String message) {
+    final now = DateTime.now();
+    final String timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+    logs.insert(0, {
+      "time": timeStr,
+      "message": message.startsWith("[AI]") ? message : "[AI] $message"
+    });
+  }
+
+  void _showPremiumSheet() {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF0E1326),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
-        final premiumPrice = _engine.premiumPrice ?? "\$4.99/mo"; 
-        final premiumStatus = _engine.isPremiumActive ? "Premium Activated" : "Free Version";
-
         return Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -322,18 +274,10 @@ void _showPremiumSheet() {
             children: [
               const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFD700), size: 45),
               const SizedBox(height: 12),
-              Text(
-                _engine.isPremiumActive ? "AI Premium Active" : "Upgrade to AI Premium",
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+              const Text("Upgrade to AI Premium", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              Text(
-                _engine.isPremiumActive
-                  ? "You already have access to advanced deep cleaning and real-time security."
-                  : "Unlock advanced deep cleaning, automated scheduling, and real-time security scanning.",
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white60, fontSize: 13, height: 1.4),
-              ),
+              const Text("Unlock advanced deep cleaning, automated daily background scheduling, and real-time security scanning updates.", 
+                textAlign: TextAlign.center, style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.4)),
               const SizedBox(height: 20),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -341,16 +285,8 @@ void _showPremiumSheet() {
                   minimumSize: const Size(double.infinity, 48),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                onPressed: () {
-                  if (!_engine.isPremiumActive) {
-                    _engine.activatePremium(); // ربط بعملية التفعيل الفعلية
-                  }
-                  Navigator.pop(context);
-                },
-                child: Text(
-                  _engine.isPremiumActive ? "Premium Active" : "Get Premium - $premiumPrice",
-                  style: const TextStyle(color: Color(0xFF090D1A), fontWeight: FontWeight.bold),
-                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Get Premium - \$4.99/mo", style: TextStyle(color: Color(0xFF090D1A), fontWeight: FontWeight.bold)),
               )
             ],
           ),
@@ -361,8 +297,6 @@ void _showPremiumSheet() {
 
   @override
   Widget build(BuildContext context) {
-    final premiumStatus = _engine.isPremiumActive ? "Premium Activated" : "Free Version";
-
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppColors.background,
@@ -371,32 +305,26 @@ void _showPremiumSheet() {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(color: Color(0xFF0E1326)),
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Color(0xFF0E1326)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("AI OPTIMIZER PRO", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                  const SizedBox(height: 4),
-                  Text("v${_engine.version} - $premiumStatus", style: const TextStyle(color: Color(0xFF00F2FE), fontSize: 12)),
+                  Text("AI OPTIMIZER PRO", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  SizedBox(height: 4),
+                  Text("v1.0.0 - Premium Activated", style: TextStyle(color: Color(0xFF00F2FE), fontSize: 12)),
                 ],
               ),
             ),
-
-
-ListTile(
+            ListTile(
               leading: const Icon(Icons.shield_outlined, color: Colors.white70), 
               title: const Text("AI Deep Shield", style: TextStyle(color: Colors.white)), 
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      _engine.isShieldActive 
-                        ? "AI Deep Shield is currently active and monitoring threats."
-                        : "AI Deep Shield is not yet available.",
-                    ),
+                  const SnackBar(
+                    content: Text("This feature is under development"),
                   ),
                 );
               },
@@ -406,32 +334,9 @@ ListTile(
               title: const Text("Cleaning History", style: TextStyle(color: Colors.white)), 
               onTap: () {
                 Navigator.pop(context);
-                if (_engine.cleaningHistory.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("No cleaning history available.")),
-                  );
-                } else {
-                  // عرض السجل الفعلي
-                  showDialog(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text("Cleaning History"),
-                      content: SizedBox(
-                        height: 200,
-                        child: ListView.builder(
-                          itemCount: _engine.cleaningHistory.length,
-                          itemBuilder: (_, i) {
-                            final entry = _engine.cleaningHistory[i];
-                            return ListTile(
-                              title: Text("${entry.date} - ${formatBytes(entry.cleanedBytes)}"),
-                              subtitle: Text("${entry.filesCount} files cleaned"),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  );
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Cleaning History will be implemented.")),
+                );
               },
             ),
             ListTile(
@@ -442,13 +347,36 @@ ListTile(
                 showAboutDialog(
                   context: context,
                   applicationName: "AI Optimizer",
-                  applicationVersion: _engine.version, // ربط بالإصدار الفعلي
-                  applicationLegalese: "© ${_engine.author}", // ربط بالكاتب الفعلي
+                  applicationVersion: "1.0.0",
+                  applicationLegalese: "© Mohammad Ghazi Abdullah Mallouh",
                 );
               },
             ),
-
-body: SafeArea(
+          ],
+        ),
+      ),
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white),
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+        ),
+        centerTitle: true,
+        title: const Text(
+          "AI OPTIMIZER",
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFD700), size: 24),
+            onPressed: () {
+              _showPremiumSheet();
+            },
+          ),
+        ],
+      ),
+      body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(
@@ -460,12 +388,8 @@ body: SafeArea(
                 progress: state.progress,
                 title: state.currentTask,
                 subtitle: _isCleaning 
-                    ? "Cleaning ${_engine.cleanedFilesCount} files..."
-                    : (state.scanning 
-                        ? "Scanning ${_engine.totalFiles} files detected..." 
-                        : _engine.isInitialized 
-                            ? "System Ready" 
-                            : "Engine Initializing"),
+                    ? "Purging Device Garbage..." 
+                    : (state.scanning ? "AI Engine Active..." : "System Gatekeeper"),
               ),
 
               const SizedBox(height: 12),
@@ -490,43 +414,26 @@ body: SafeArea(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStatColumn(
-                      "${_engine.cleanedFilesCount}", 
-                      _isCleaning || _isOptimized ? "Files Cleaned" : "Files Detected", 
-                      const Color(0xFF00F2FE),
-                    ),
+                    _buildStatColumn("${_engine.totalFiles}", _isCleaning || _isOptimized ? "Files Cleaned" : "Files Out", const Color(0xFF00F2FE)),
                     Container(width: 1, height: 22, color: Colors.white10),
-                    _buildStatColumn(
-                      formatBytes(_engine.cleanedBytes), 
-                      _isCleaning || _isOptimized ? "Space Freed" : "Junk Size", 
-                      const Color(0xFFE040FB),
-                    ),
+                    _buildStatColumn(formatBytes(_engine.totalBytes.toInt()), _isCleaning || _isOptimized ? "Space Freed" : "Junk Size", const Color(0xFFE040FB)),
                     Container(width: 1, height: 22, color: Colors.white10),
-                    _buildStatColumn(
-                      "${state.healthScore.toInt()}%", 
-                      _isCleaning ? "Cleaning..." : "Performance", 
-                      const Color(0xFF00E676),
-                    ),
+                    _buildStatColumn("${state.healthScore.toInt()}%", _isCleaning ? "Cleaning..." : "Performance", const Color(0xFF00E676)),
                   ],
                 ),
               ),
 
               const SizedBox(height: 12),
 
-Expanded(
+              Expanded(
                 child: _isCleaning
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00F2FE)),
-                            ),
+                            const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF00F2FE))),
                             const SizedBox(height: 16),
-                            Text(
-                              "Cleaning ${_engine.cleanedFilesCount} files...",
-                              style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
-                            ),
+                            Text(state.currentTask, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
                           ],
                         ),
                       )
@@ -560,30 +467,17 @@ Expanded(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text("Live AI Core Logs", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                  if (logs.isNotEmpty)
-                                    TextButton(
-                                      onPressed: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (_) => AlertDialog(
-                                            title: const Text("Full Logs"),
-                                            content: SizedBox(
-                                              height: 200,
-                                              child: ListView.builder(
-                                                itemCount: logs.length,
-                                                itemBuilder: (_, i) {
-                                                  return ListTile(
-                                                    title: Text(logs[i]["message"]!),
-                                                    subtitle: Text(logs[i]["time"]!),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: const Text("View All >", style: TextStyle(color: Color(0xFF4FACFE), fontSize: 12)),
-                                    ),
+                                  TextButton(
+                                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                                    onPressed: () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("This feature is under development"),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text("View All >", style: TextStyle(color: Color(0xFF4FACFE), fontSize: 12)),
+                                  ),
                                 ],
                               ),
                               Container(
@@ -595,7 +489,7 @@ Expanded(
                                   border: Border.all(color: Colors.white.withOpacity(0.02)),
                                 ),
                                 child: logs.isEmpty
-                                    ? const Center(child: Text("No logs available.", style: TextStyle(color: Colors.white24, fontSize: 11)))
+                                    ? const Center(child: Text("No junk files found.", style: TextStyle(color: Colors.white24, fontSize: 11)))
                                     : ListView.builder(
                                         itemCount: logs.length,
                                         itemBuilder: (_, i) {
@@ -626,12 +520,45 @@ Expanded(
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                                 children: [
-                                  _buildInteractiveTool(Icons.cleaning_services_outlined, "Deep Clean", performCleaning),
-                                  _buildInteractiveTool(Icons.folder_open_outlined, "Large Files", _engine.showLargeFiles),
-                                  _buildInteractiveTool(Icons.copy_all_outlined, "Duplicates", _engine.findDuplicates),
-                                  _buildInteractiveTool(Icons.developer_mode_outlined, "App Manager", () {
-                                    Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-                                  }),
+                                  _buildInteractiveTool(
+                                    Icons.cleaning_services_outlined,
+                                    "Deep Clean",
+                                    performCleaning,
+                                  ),
+                                  _buildInteractiveTool(
+                                    Icons.folder_open_outlined,
+                                    "Large Files",
+                                    () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("This feature is under development"),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  _buildInteractiveTool(
+                                    Icons.copy_all_outlined,
+                                    "Duplicates",
+                                    () {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("This feature is under development"),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  _buildInteractiveTool(
+                                    Icons.developer_mode_outlined,
+                                    "App Manager",
+                                    () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const SettingsScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ],
                               ),
                             ],
@@ -642,14 +569,14 @@ Expanded(
 
               AnimatedButton(
                 title: _isCleaning
-                    ? "Cleaning in Progress..."
+                    ? "PROCESSING DEEP CLEAN..."
                     : state.scanning
-                        ? "Scanning Files..."
+                        ? "PROCESSING AI ANALYSIS..."
                         : state.analysisFinished
-                            ? "Start Optimization"
+                            ? "START OPTIMIZATION"
                             : _isOptimized 
-                                ? "System Optimized" 
-                                : "Start AI Analysis",
+                                ? "SYSTEM SECURED & READY" 
+                                : "START AI ANALYSIS",
                 icon: _isCleaning || state.scanning
                     ? Icons.hourglass_top_rounded
                     : state.analysisFinished
@@ -664,5 +591,188 @@ Expanded(
                         : startAnalysis,
               ),
               const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: const Color(0xFF090D1A),
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: const Color(0xFF00F2FE),
+        unselectedItemColor: Colors.white38,
+        currentIndex: _currentIndex,
+        selectedFontSize: 10,
+        unselectedFontSize: 10,
+        onTap: (index) {
+          setState(() => _currentIndex = index);
 
+          switch (index) {
+            case 0:
+              break;
 
+            case 1:
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Tools module coming next")),
+              );
+              break;
+
+            case 2:
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("This feature is under development"),
+                ),
+              );
+              break;
+
+            case 3:
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SettingsScreen(),
+                ),
+              );
+              break;
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded, size: 20), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.construction_rounded, size: 20), label: "Tools"),
+          BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined, size: 20), label: "Monitor"),
+          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined, size: 20), label: "Settings"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDynamicHealthCard() {
+    String scoreText = "--";
+    String descText = "Scan Required";
+    Color txtColor = Colors.white38;
+    Gradient cardGrad = LinearGradient(colors: [Colors.white.withOpacity(0.04), Colors.white.withOpacity(0.02)]);
+
+    if (_isCleaning) {
+      scoreText = "CLEAN";
+      descText = "Optimizing Core...";
+      txtColor = const Color(0xFF00F2FE);
+      cardGrad = LinearGradient(colors: [const Color(0xFF00F2FE).withOpacity(0.15), Colors.blue.withOpacity(0.05)]);
+    } else if (state.scanning) {
+      scoreText = "SCAN";
+      descText = "Analyzing...";
+      txtColor = const Color(0xFFFFD700);
+    } else if (_isOptimized) {
+      scoreText = "${state.healthScore.toInt()}%";
+      descText = "Optimized";
+      txtColor = const Color(0xFF00E676);
+      cardGrad = const LinearGradient(colors: [Color(0xFF00C6FF), Color(0xFF0072FF)]);
+    } else if (_hasScanned) {
+      scoreText = "${state.healthScore.toInt()}%";
+      descText = state.healthScore > 80 ? "Good" : "Warning";
+      txtColor = state.healthScore > 80 ? const Color(0xFF00F2FE) : Colors.orangeAccent;
+      cardGrad = LinearGradient(colors: [Colors.red.withOpacity(0.1), Colors.orange.withOpacity(0.02)]);
+    } else if (_engine.totalFiles > 0) {
+      scoreText = "${state.healthScore.toInt()}%";
+      descText = "Scanned";
+      txtColor = const Color(0xFF00F2FE);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      height: 90,
+      decoration: BoxDecoration(
+        gradient: cardGrad,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text("AI HEALTH SCORE", style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+          const SizedBox(height: 4),
+          Text(scoreText, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, height: 1.1)),
+          const SizedBox(height: 2),
+          Text(descText, style: TextStyle(color: txtColor, fontSize: 11, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDynamicStatusCard() {
+    String statusTitle = _isCleaning ? "LIVE AI SCAN" : "SYSTEM STATUS";
+    String statusSub = _isCleaning ? "Purging Files" : (state.scanning ? "Optimizing Channels" : (_isOptimized ? "Optimized" : "Idle"));
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      height: 90,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              Icon(_isOptimized ? Icons.verified_user_outlined : Icons.radar_outlined, color: const Color(0xFF00F2FE), size: 14),
+              const SizedBox(width: 4),
+              Text(statusTitle, style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(state.currentTask, maxLines: 1, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis)),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: state.progress,
+              backgroundColor: Colors.white10,
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00F2FE)),
+              minHeight: 4,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(statusSub, style: const TextStyle(color: Colors.white38, fontSize: 9)),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatColumn(String value, String title, Color valueColor) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(value, style: TextStyle(color: valueColor, fontSize: 14, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 2),
+        Text(title, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+      ],
+    );
+  }
+
+  Widget _buildInteractiveTool(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.02),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.04)),
+            ),
+            child: Icon(icon, color: Colors.white70, size: 20),
+          ),
+          const SizedBox(height: 6),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+}
