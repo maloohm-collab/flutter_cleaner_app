@@ -48,27 +48,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // دالة الفحص الذكي مع تحديث تدريجي وموزون للمؤشر
   Future<void> startAnalysis() async {
-    if (state.scanning || _isCleaning) return;
-
-    // طلب صلاحيات التخزين والوسائط قبل البدء
-    final status = await Permission.storage.request();
-
-    if (!status.isGranted) {
+    // 1. التحقق من الصلاحيات
+    if (!await Permission.storage.request().isGranted &&
+        !await Permission.manageExternalStorage.request().isGranted) {
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Storage permission is required."),
+          content: Text("Storage permission is required to scan files."),
         ),
       );
       return;
     }
 
-    // لأندرويد 13+ اطلب صلاحيات الوسائط الإضافية
+    // 2. التحقق من حالة الفحص
+    if (state.scanning || _isCleaning) return;
+
+    // 3. طلب صلاحيات الوسائط (للأندرويد الحديث)
     await [
       Permission.photos,
       Permission.videos,
       Permission.audio,
     ].request();
 
+    // 4. ضبط حالة البداية (UI)
     setState(() {
       logs.clear();
       _hasScanned = false;
@@ -81,6 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     });
 
+    // 5. بدء الـ Pipeline
     await _pipeline.start(
       onStage: (stage, progress, message) async {
         if (!mounted) return;
@@ -91,6 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
+    // 6. بدء الفحص الحقيقي
     scanItems = await _engine.scan(
       onStatus: (msg) {
         if (!mounted) return;
@@ -103,6 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
+    // 7. إنهاء الفحص وتحديث الواجهة
     if (!mounted) return;
 
     setState(() {
@@ -122,6 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     });
   }
+
 
   // دالة التنظيف العميقة المحسنة
   Future<void> performCleaning() async {
