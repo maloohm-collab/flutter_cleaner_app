@@ -200,121 +200,229 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
     );
+import 'package:flutter/material.dart';
+import 'package:flutter_cleaner_app/services/cleaner_engine.dart';
+import 'package:flutter_cleaner_app/services/scan_item.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-    final List<String> cleanSteps = [
-      "Purging Thumbnail Cache...",
-      "Clearing Media Garbage...",
-      "Wiping Residual Logs...",
-      "Optimizing Memory Channels...",
-      "Finalizing Core Guard..."
-    ];
+import '../utils/colors.dart';
+import '../widgets/animated_button.dart';
+import '../widgets/progress_ring.dart';
+import '../widgets/scan_result_card.dart';
+import 'settings_screen.dart';
 
-    for (int i = 0; i < cleanSteps.length; i++) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-      setState(() {
-        state = state.copyWith(
-          progress: 0.2 + (i * 0.16),
-          currentTask: cleanSteps[i],
-        );
-      });
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final CleanerEngine _engine = CleanerEngine();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // حالة النظام
+  bool _scanning = false;
+  bool _isCleaning = false;
+  bool _hasScanned = false;
+  double _progress = 0.0;
+  String _currentTask = "Tap Below to Scan System";
+  
+  List<ScanItem> scanItems = [];
+  final List<Map<String, String>> logs = [];
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  // --- دوال التحكم ---
+
+  Future<void> startAnalysis() async {
+    if (!await Permission.storage.request().isGranted &&
+        !await Permission.manageExternalStorage.request().isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Permission required.")));
+      return;
     }
 
-    if (!mounted) return;
-
     setState(() {
-      _isOptimized = true;
-      _hasScanned = true;
-      _isCleaning = false; 
-      healthScore = 100; 
-      state = state.copyWith(
-        scanning: false, 
-        analysisFinished: false,
-        progress: 1.0,
-        currentTask: "System Fully Optimized!",
-        totalFiles: 0,
-        totalBytes: 0,
-        healthScore: 100,
-      );
-      _addLog("Optimization Complete. Device Status: Excellent.");
+      _scanning = true;
+      _progress = 0.0;
+      _currentTask = "Initializing AI Engine...";
+      logs.clear();
     });
 
-    // بعد انتهاء التنظيف أعد تشغيل الفحص مباشرة
-    await startAnalysis();
+    scanItems = await _engine.scan(
+      onStatus: (msg) {
+        if (!mounted) return;
+        _addLog(msg);
+        setState(() { _currentTask = msg; });
+      },
+      onProgress: (p) {
+        if (!mounted) return;
+        setState(() { _progress = p; });
+      },
+    );
+
+    setState(() {
+      _scanning = false;
+      _hasScanned = true;
+      _progress = 1.0;
+      _currentTask = "Analysis Complete";
+    });
+  }
+
+  Future<void> performCleaning() async {
+    final selectedItems = scanItems.where((item) => item.selected).toList();
+    if (selectedItems.isEmpty) return;
+
+    setState(() {
+      _isCleaning = true;
+      _currentTask = "Executing Deep Clean...";
+    });
+
+    await _engine.clean(
+      selected: selectedItems,
+      onStatus: (msg) {
+        if (!mounted) return;
+        _addLog(msg);
+        setState(() { _currentTask = msg; });
+      },
+    );
+
+    setState(() {
+      _isCleaning = false;
+      _hasScanned = false;
+      scanItems.clear();
+      _currentTask = "System Optimized!";
+      _progress = 0.0;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Optimization Complete!")));
+  }
+
+  // --- دوال مساعدة للعرض ---
+
+  void _showDetectedFilesSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0E1326),
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        builder: (_, controller) => ListView.builder(
+          controller: controller,
+          itemCount: _engine.discoveredFiles.length,
+          itemBuilder: (_, i) => ListTile(
+            leading: const Icon(Icons.insert_drive_file, color: Colors.white38),
+            title: Text(_engine.discoveredFiles[i].path.split('/').last, style: const TextStyle(color: Colors.white, fontSize: 12)),
+            subtitle: Text(_engine.discoveredFiles[i].path, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _addLog(String message) {
+    final now = DateTime.now();
+    final timeStr = "${now.hour}:${now.minute}";
+    setState(() {
+      logs.insert(0, {"time": timeStr, "message": message});
+    });
   }
 
   String formatBytes(int bytes) {
     if (bytes < 1024) return "$bytes B";
     if (bytes < 1024 * 1024) return "${(bytes / 1024).toStringAsFixed(1)} KB";
-    if (bytes < 1024 * 1024 * 1024) return "${(bytes / 1024 / 1024).toStringAsFixed(2)} MB";
-    return "${(bytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB";
+    return "${(bytes / 1024 / 1024).toStringAsFixed(2)} MB";
   }
 
-  void _addLog(String message) {
-    final now = DateTime.now();
-    final String timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
-    logs.insert(0, {
-      "time": timeStr,
-      "message": message.startsWith("[AI]") ? message : "[AI] $message"
-    });
-  }
-
-  void _showPremiumSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF0E1326),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFD700), size: 45),
-              const SizedBox(height: 12),
-              const Text("Upgrade to AI Premium", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              const Text("Unlock advanced deep cleaning, automated daily background scheduling, and real-time security scanning updates.", 
-                textAlign: TextAlign.center, style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.4)),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00F2FE),
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Get Premium - \$4.99/mo", style: TextStyle(color: Color(0xFF090D1A), fontWeight: FontWeight.bold)),
-              )
-            ],
-          ),
-        );
-      },
-    );
-  }
+  // --- بناء الواجهة ---
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppColors.background,
-      drawer: Drawer(
-        backgroundColor: const Color(0xFF090D1A),
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            const DrawerHeader(
-              decoration: BoxDecoration(color: Color(0xFF0E1326)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              ProgressRing(progress: _progress, title: _currentTask, subtitle: "AI Engine"),
+              const SizedBox(height: 20),
+              
+              // الإحصائيات
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Text("AI OPTIMIZER PRO", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                  SizedBox(height: 4),
-                  Text("v1.0.0 - Premium Activated", style: TextStyle(color: Color(0xFF00F2FE), fontSize: 12)),
+                  _buildStatColumn("${_engine.totalFiles}", "Files"),
+                  _buildStatColumn(formatBytes(_engine.totalBytes), "Size"),
                 ],
               ),
+              
+              const SizedBox(height: 20),
+
+              Expanded(
+                child: scanItems.isEmpty
+                    ? _buildLogsView()
+                    : _buildResultList(),
+              ),
+
+              AnimatedButton(
+                title: _isCleaning ? "CLEANING..." : (_hasScanned ? "START OPTIMIZATION" : "START ANALYSIS"),
+                icon: Icons.bolt,
+                onPressed: (_scanning || _isCleaning) ? null : (_hasScanned ? performCleaning : startAnalysis),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultList() {
+    return Column(
+      children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const Text("Detected Junk", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          TextButton(onPressed: _showDetectedFilesSheet, child: const Text("View All"))
+        ]),
+        Expanded(
+          child: ListView.builder(
+            itemCount: scanItems.length,
+            itemBuilder: (_, i) => ScanResultCard(
+              item: scanItems[i],
+              onChanged: (val) => setState(() => scanItems[i] = scanItems[i].copyWith(selected: val)),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLogsView() {
+    return ListView.builder(
+      itemCount: logs.length,
+      itemBuilder: (_, i) => ListTile(
+        title: Text(logs[i]["message"]!, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        trailing: Text(logs[i]["time"]!, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+      ),
+    );
+  }
+
+  Widget _buildStatColumn(String val, String title) {
+    return Column(children: [
+      Text(val, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+      Text(title, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+    ]);
+  }
+}
+
             ListTile(
               leading: const Icon(Icons.shield_outlined, color: Colors.white70), 
               title: const Text("AI Deep Shield", style: TextStyle(color: Colors.white)), 
