@@ -42,92 +42,77 @@ class CleanerEngine {
 
     try {
       onStatus?.call("Initializing AI System Paths...");
-      onProgress?.call(0.15);
-      await Future.delayed(const Duration(milliseconds: 400));
+      onProgress?.call(0.05);
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Helper لإضافة نتيجة إذا وُجدت ملفات في المسار
+      Future<void> _collectFromDirectory(Directory dir, String id, String title) async {
+        int filesCount = 0;
+        int bytesCount = 0;
+
+        if (await dir.exists()) {
+          await for (FileSystemEntity entity in dir.list(recursive: true, followLinks: false)) {
+            if (entity is File) {
+              try {
+                final len = await entity.length();
+                filesCount++;
+                bytesCount += len;
+                _discoveredFiles.add(entity);
+              } catch (_) {
+                // تجاهل الملفات التي لا يمكن قراءتها
+              }
+            }
+          }
+        }
+
+        if (filesCount > 0) {
+          _results.add(
+            ScanItem(
+              id: id,
+              title: title,
+              path: dir.path,
+              files: filesCount,
+              bytes: bytesCount,
+              selected: true,
+            ),
+          );
+        }
+      }
 
       // 1. قراءة وفحص مجلد الكاش المؤقت الحقيقي للجهاز الحالي
       onStatus?.call("Scanning System Temporary Cache...");
-      onProgress?.call(0.45);
-      
+      onProgress?.call(0.20);
       Directory tempDir = await getTemporaryDirectory();
-      int cacheFilesCount = 0;
-      int cacheBytesCount = 0;
-
-      if (await tempDir.exists()) {
-        await for (FileSystemEntity entity in tempDir.list(recursive: true, followLinks: false)) {
-          if (entity is File) {
-            cacheFilesCount++;
-            cacheBytesCount += await entity.length();
-            _discoveredFiles.add(entity); // حفظ مراجع الملف للحذف اللاحق
-          }
-        }
-      }
-
-      onProgress?.call(0.75);
-      onStatus?.call("Analyzing Application Support Directories...");
-      await Future.delayed(const Duration(milliseconds: 300));
+      await _collectFromDirectory(tempDir, "system_cache", "System Cache Files");
 
       // 2. قراءة مجلد الدعم للتطبيق لضمان الحصول على ملفات كاش إضافية متنوعة
+      onStatus?.call("Analyzing Application Support Directories...");
+      onProgress?.call(0.45);
       Directory appSupportDir = await getApplicationSupportDirectory();
-      int supportFilesCount = 0;
-      int supportBytesCount = 0;
+      await _collectFromDirectory(appSupportDir, "thumbnail_media_cache", "Thumbnail & Media Cache");
 
-      if (await appSupportDir.exists()) {
-        await for (FileSystemEntity entity in appSupportDir.list(recursive: true, followLinks: false)) {
-          if (entity is File) {
-            supportFilesCount++;
-            supportBytesCount += await entity.length();
-            _discoveredFiles.add(entity);
+      // 3. محاولة الوصول إلى مجلدات خارجية شائعة (إن وُجدت) مثل externalCacheDirectories
+      try {
+        onStatus?.call("Scanning External Cache Directories...");
+        onProgress?.call(0.65);
+        final externalDirs = await getExternalCacheDirectories();
+        if (externalDirs != null) {
+          for (final d in externalDirs) {
+            await _collectFromDirectory(d, "external_cache_${d.path.hashCode}", "External Cache");
           }
         }
+      } catch (_) {
+        // بعض الأجهزة أو المنصات لا تدعم external cache directories
       }
 
-      // إضافة بطاقة كاش النظام للواجهة إذا عثرنا على ملفات فعلاً
-      if (cacheFilesCount > 0) {
-        _results.add(
-          ScanItem(
-            id: "system_cache",
-            title: "System Cache Files",
-            path: tempDir.path,
-            files: cacheFilesCount,
-            bytes: cacheBytesCount,
-            selected: true,
-          ),
-        );
-      }
+      // 4. تحديث التقدم النهائي
+      onProgress?.call(0.95);
+      onStatus?.call("Finalizing scan results...");
+      await Future.delayed(const Duration(milliseconds: 200));
 
-      // إضافة بطاقة ملفات الدعم المصغرة للواجهة
-      if (supportFilesCount > 0) {
-        _results.add(
-          ScanItem(
-            id: "thumbnail_media_cache",
-            title: "Thumbnail & Media Cache",
-            path: appSupportDir.path,
-            files: supportFilesCount,
-            bytes: supportBytesCount,
-            selected: true,
-          ),
-        );
-      }
-
-      // حماية برمجية للواجهة: إذا كان الهاتف مفرمت أو جديد تماماً والكاش صفر
-      // نضع ملف سجل افتراضي خفيف لكي لا تظهر الواجهة بيضاء وميتة للمستخدم
-      if (_results.isEmpty) {
-        _results.add(
-          ScanItem(
-            id: "temp_idle_logs",
-            title: "System Idle Logs",
-            path: tempDir.path,
-            files: 3,
-            bytes: 4096, // 4 KB
-            selected: true,
-          ),
-        );
-      }
-
+      // لا نضيف أي نتائج افتراضية هنا — إذا لم يُعثر على ملفات، نُرجع قائمة فارغة
       onProgress?.call(1.0);
       onStatus?.call("AI Scan Completed Successfully");
-
     } catch (e) {
       onStatus?.call("Scan interrupted: $e");
       onProgress?.call(1.0);
@@ -147,22 +132,32 @@ class CleanerEngine {
     if (selected.isEmpty) return 0;
 
     onStatus?.call("Clearing identified cache directories...");
-    
+    // بناء مجموعة من المسارات المحددة لتصفية الملفات التي سيتم حذفها
+    final selectedPaths = selected.map((s) => s.path).toList();
+
     // تكرار حقيقي على الملفات المجمعة وحذفها نهائياً من القرص الصلب
-    for (File file in _discoveredFiles) {
+    for (File file in List<File>.from(_discoveredFiles)) {
       try {
+        // حذف فقط الملفات التي تقع ضمن المسارات المحددة من قبل المستخدم
+        final filePath = file.path;
+        final shouldDelete = selectedPaths.any((p) => filePath.startsWith(p));
+        if (!shouldDelete) continue;
+
         if (await file.exists()) {
           await file.delete();
           deletedCount++;
+          onStatus?.call("Deleted: ${file.path}");
         }
-      } catch (_) {
-        // حماية التطبيق من الانهيار في حال كان الملف مستخدماً أو محمياً من نظام التشغيل
+      } catch (e) {
+        // سجل الخطأ لكن لا توقف العملية
+        onStatus?.call("Failed to delete: ${file.path} (${e.toString()})");
       }
     }
 
     // تنظيف القوائم بعد إتمام المهمة بنجاح لتصفير الواجهة
-    _discoveredFiles.clear();
-    _results.clear();
+    _discoveredFiles.removeWhere((f) => !f.existsSync());
+    // إعادة بناء النتائج: نزيل العناصر التي كانت ضمن المسارات المحددة
+    _results.removeWhere((r) => selectedPaths.any((p) => r.path == p || r.path.startsWith(p)));
 
     onStatus?.call("Optimization Complete.");
     return deletedCount;
