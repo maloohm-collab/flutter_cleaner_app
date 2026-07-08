@@ -1,12 +1,19 @@
+
+
 import 'package:flutter/material.dart';
+
+// الاستيرادات القياسية للمحرك والحالة الموحدة
 import 'package:flutter_cleaner_app/services/cleaner_engine.dart';
-import 'package:flutter_cleaner_app/services/scan_item.dart';
+import 'package:flutter_cleaner_app/services/scan_pipeline.dart';
+import 'package:flutter_cleaner_app/services/scan_item.dart'; 
+import 'package:flutter_cleaner_app/models/dashboard_state.dart';
+import 'package:flutter_cleaner_app/widgets/scan_result_card.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../utils/colors.dart';
 import '../widgets/animated_button.dart';
 import '../widgets/progress_ring.dart';
-import '../widgets/scan_result_card.dart';
+
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,67 +25,171 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final CleanerEngine _engine = CleanerEngine();
+  final ScanPipeline _pipeline = ScanPipeline();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // حالة النظام
-  bool _scanning = false;
-  bool _isCleaning = false;
-  bool _hasScanned = false;
-  bool _isOptimized = false;
-  
-  double _progress = 0.0;
-  String _currentTask = "Tap Below to Scan System";
-  int _healthScore = 100;
-  int _currentIndex = 0;
-  
+  DashboardState state = const DashboardState();
   List<ScanItem> scanItems = [];
   final List<Map<String, String>> logs = [];
 
-  // --- دوال التحكم ---
+  bool _hasScanned = false;
+  bool _isOptimized = false;
+  bool _isCleaning = false; 
+  int healthScore = 100;
+  int _currentIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    state = state.copyWith(
+      currentTask: "Tap Below to Scan System",
+      progress: 0,
+      healthScore: 100,
+    );
+  }
+
+  // دالة الفحص الذكي مع تحديث تدريجي وموزون للمؤشر
   Future<void> startAnalysis() async {
+    // 1. التحقق من الصلاحيات
     if (!await Permission.storage.request().isGranted &&
         !await Permission.manageExternalStorage.request().isGranted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Storage permission is required.")));
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Storage permission is required to scan files."),
+        ),
+      );
       return;
     }
 
+    // 2. التحقق من حالة الفحص
+    if (state.scanning || _isCleaning) return;
+
+    // 3. طلب صلاحيات الوسائط (للأندرويد الحديث)
+    await [
+      Permission.photos,
+      Permission.videos,
+      Permission.audio,
+    ].request();
+
+    // 4. ضبط حالة البداية (UI)
     setState(() {
-      _scanning = true;
-      _progress = 0.0;
-      _currentTask = "Initializing AI Engine...";
       logs.clear();
-      scanItems.clear();
+      _hasScanned = false;
+      _isOptimized = false;
+      state = state.copyWith(
+        scanning: true,
+        analysisFinished: false,
+        progress: 0.0,
+        currentTask: "Initializing AI Engine...",
+      );
     });
 
+    // 5. بدء الـ Pipeline
+    await _pipeline.start(
+      onStage: (stage, progress, message) async {
+        if (!mounted) return;
+        setState(() {
+          state = state.copyWith(progress: progress * 0.3, currentTask: message);
+        });
+        _addLog(message);
+      },
+    );
+
+    // 6. بدء الفحص الحقيقي
     scanItems = await _engine.scan(
       onStatus: (msg) {
         if (!mounted) return;
         _addLog(msg);
-        setState(() { _currentTask = msg; });
+        setState(() { state = state.copyWith(currentTask: msg); });
       },
       onProgress: (p) {
         if (!mounted) return;
-        setState(() { _progress = p; });
+        setState(() { state = state.copyWith(progress: 0.3 + (p * 0.7)); });
       },
     );
 
+    // 7. إنهاء الفحص وتحديث الواجهة
+    if (!mounted) return;
+
     setState(() {
-      _scanning = false;
       _hasScanned = true;
-      _progress = 1.0;
-      _currentTask = "Analysis Complete";
-      _healthScore = (_engine.totalFiles == 0) ? 100 : (100 - (_engine.totalFiles ~/ 5)).clamp(55, 95);
+      healthScore = (_engine.totalFiles == 0)
+          ? 100
+          : (100 - (_engine.totalFiles ~/ 5)).clamp(55, 95);
+
+      state = state.copyWith(
+        scanning: false,
+        analysisFinished: true,
+        progress: 1.0,
+        currentTask: "Analysis Complete",
+        totalFiles: _engine.totalFiles,
+        totalBytes: _engine.totalBytes,
+        healthScore: healthScore.toDouble(),
+      );
     });
   }
 
+
+  // دالة التنظيف العميقة المحسنة
   Future<void> performCleaning() async {
+    if (state.scanning || _isCleaning) return;
+
     final selectedItems = scanItems.where((item) => item.selected).toList();
-    if (selectedItems.isEmpty) return;
+    
+    if (selectedItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select at least one item to clean.")),
+      );
+      return;
+    }
+
+    bool? shouldClean = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF0E1326),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withOpacity(0.08)),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Color(0xFFFFD700), size: 22),
+              SizedBox(width: 8),
+              Text("Confirm Deletion", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            "Are you sure you want to permanently delete the selected files (${formatBytes(state.totalBytes.toInt())})?",
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text("Cancel", style: TextStyle(color: Colors.white38)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text("Clean Now", style: TextStyle(color: Color(0xFF00F2FE), fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldClean != true) return;
 
     setState(() {
       _isCleaning = true;
-      _currentTask = "Executing Deep Clean...";
+      state = state.copyWith(
+        scanning: false, 
+        analysisFinished: false,
+        currentTask: "Executing Deep Clean...",
+        progress: 0.1,
+      );
+      logs.clear();
     });
 
     await _engine.clean(
@@ -86,133 +197,126 @@ class _HomeScreenState extends State<HomeScreen> {
       onStatus: (msg) {
         if (!mounted) return;
         _addLog(msg);
-        setState(() { _currentTask = msg; });
+        if (msg != "Optimization Complete.") {
+          setState(() { state = state.copyWith(currentTask: msg); });
+        }
       },
     );
 
+    final List<String> cleanSteps = [
+      "Purging Thumbnail Cache...",
+      "Clearing Media Garbage...",
+      "Wiping Residual Logs...",
+      "Optimizing Memory Channels...",
+      "Finalizing Core Guard..."
+    ];
+
+    for (int i = 0; i < cleanSteps.length; i++) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+      setState(() {
+        state = state.copyWith(
+          progress: 0.2 + (i * 0.16),
+          currentTask: cleanSteps[i],
+        );
+      });
+    }
+
+    if (!mounted) return;
+
     setState(() {
-      _isCleaning = false;
-      _hasScanned = false;
       _isOptimized = true;
-      scanItems.clear();
-      _currentTask = "System Fully Optimized!";
-      _progress = 1.0;
-      _healthScore = 100;
+      _hasScanned = true;
+      _isCleaning = false; 
+      healthScore = 100; 
+      state = state.copyWith(
+        scanning: false, 
+        analysisFinished: false,
+        progress: 1.0,
+        currentTask: "System Fully Optimized!",
+        totalFiles: 0,
+        totalBytes: 0,
+        healthScore: 100,
+      );
+      _addLog("Optimization Complete. Device Status: Excellent.");
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Optimization Complete!")));
-  }
-
-  // --- دوال مساعدة ---
-
-  void _addLog(String message) {
-    final now = DateTime.now();
-    final timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
-    setState(() {
-      logs.insert(0, {"time": timeStr, "message": message.startsWith("[AI]") ? message : "[AI] $message"});
-    });
+    // بعد انتهاء التنظيف أعد تشغيل الفحص مباشرة
+    await startAnalysis();
   }
 
   String formatBytes(int bytes) {
     if (bytes < 1024) return "$bytes B";
     if (bytes < 1024 * 1024) return "${(bytes / 1024).toStringAsFixed(1)} KB";
-    return "${(bytes / 1024 / 1024).toStringAsFixed(2)} MB";
+    if (bytes < 1024 * 1024 * 1024) return "${(bytes / 1024 / 1024).toStringAsFixed(2)} MB";
+    return "${(bytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB";
   }
 
-  // --- واجهة المستخدم ---
+  void _addLog(String message) {
+    final now = DateTime.now();
+    final String timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+    logs.insert(0, {
+      "time": timeStr,
+      "message": message.startsWith("[AI]") ? message : "[AI] $message"
+    });
+  }
+
+  void _showPremiumSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0E1326),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFD700), size: 45),
+              const SizedBox(height: 12),
+              const Text("Upgrade to AI Premium", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              const Text("Unlock advanced deep cleaning, automated daily background scheduling, and real-time security scanning updates.", 
+                textAlign: TextAlign.center, style: TextStyle(color: Colors.white60, fontSize: 13, height: 1.4)),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00F2FE),
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Get Premium - \$4.99/mo", style: TextStyle(color: Color(0xFF090D1A), fontWeight: FontWeight.bold)),
+              )
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppColors.background,
-      drawer: _buildDrawer(),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        leading: IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => _scaffoldKey.currentState?.openDrawer()),
-        title: const Text("AI OPTIMIZER", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2)),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              ProgressRing(progress: _progress, title: _currentTask, subtitle: _isCleaning ? "Purging Garbage..." : "AI Engine"),
-              
-              const SizedBox(height: 20),
-              
-              Row(
+      drawer: Drawer(
+        backgroundColor: const Color(0xFF090D1A),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Color(0xFF0E1326)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(child: _buildInfoCard("HEALTH", "$_healthScore%", const Color(0xFF00E676))),
-                  const SizedBox(width: 10),
-                  Expanded(child: _buildInfoCard("JUNK", formatBytes(_engine.totalBytes), const Color(0xFFFFD700))),
+                  Text("AI OPTIMIZER PRO", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  SizedBox(height: 4),
+                  Text("v1.0.0 - Premium Activated", style: TextStyle(color: Color(0xFF00F2FE), fontSize: 12)),
                 ],
               ),
-              
-              const SizedBox(height: 20),
-
-              Expanded(
-                child: scanItems.isEmpty 
-                  ? _buildLogsView() 
-                  : ListView.builder(
-                      itemCount: scanItems.length,
-                      itemBuilder: (_, i) => ScanResultCard(
-                        item: scanItems[i],
-                        onChanged: (val) => setState(() => scanItems[i] = scanItems[i].copyWith(selected: val)),
-                      ),
-                    ),
-              ),
-
-              AnimatedButton(
-                title: _isCleaning ? "CLEANING..." : (_hasScanned ? "START OPTIMIZATION" : "START ANALYSIS"),
-                icon: Icons.bolt,
-                onPressed: (_scanning || _isCleaning) ? null : (_hasScanned ? performCleaning : startAnalysis),
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard(String title, String value, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
-      child: Column(children: [
-        Text(title, style: const TextStyle(color: Colors.white60, fontSize: 10)),
-        Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),
-      ]),
-    );
-  }
-
-  Widget _buildLogsView() {
-    return ListView.builder(
-      itemCount: logs.length,
-      itemBuilder: (_, i) => ListTile(
-        title: Text(logs[i]["message"]!, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        trailing: Text(logs[i]["time"]!, style: const TextStyle(color: Colors.white38, fontSize: 10)),
-      ),
-    );
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      backgroundColor: const Color(0xFF090D1A),
-      child: Column(
-        children: [
-          const DrawerHeader(child: Center(child: Text("AI OPTIMIZER", style: TextStyle(color: Colors.white, fontSize: 20)))),
-          ListTile(title: const Text("Settings", style: TextStyle(color: Colors.white)), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
-          ListTile(title: const Text("About", style: TextStyle(color: Colors.white)), onTap: () => showAboutDialog(context: context, applicationName: "AI Optimizer")),
-        ],
-      ),
-    );
-  }
-}
-
+            ),
             ListTile(
               leading: const Icon(Icons.shield_outlined, color: Colors.white70), 
               title: const Text("AI Deep Shield", style: TextStyle(color: Colors.white)), 
