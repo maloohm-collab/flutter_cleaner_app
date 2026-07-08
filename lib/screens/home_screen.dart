@@ -12,7 +12,6 @@ import '../utils/colors.dart';
 import '../widgets/animated_button.dart';
 import '../widgets/progress_ring.dart';
 
-import 'dashboard_screen.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -50,6 +49,25 @@ class _HomeScreenState extends State<HomeScreen> {
   // دالة الفحص الذكي مع تحديث تدريجي وموزون للمؤشر
   Future<void> startAnalysis() async {
     if (state.scanning || _isCleaning) return;
+
+    // طلب صلاحيات التخزين والوسائط قبل البدء
+    final status = await Permission.storage.request();
+
+    if (!status.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Storage permission is required."),
+        ),
+      );
+      return;
+    }
+
+    // لأندرويد 13+ اطلب صلاحيات الوسائط الإضافية
+    await [
+      Permission.photos,
+      Permission.videos,
+      Permission.audio,
+    ].request();
 
     setState(() {
       logs.clear();
@@ -199,12 +217,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
 
     setState(() {
-      scanItems.clear();
       _isOptimized = true;
       _hasScanned = true;
       _isCleaning = false; 
       healthScore = 100; 
-      
       state = state.copyWith(
         scanning: false, 
         analysisFinished: false,
@@ -216,6 +232,9 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       _addLog("Optimization Complete. Device Status: Excellent.");
     });
+
+    // بعد انتهاء التنظيف أعد تشغيل الفحص مباشرة
+    await startAnalysis();
   }
 
   String formatBytes(int bytes) {
@@ -295,9 +314,10 @@ class _HomeScreenState extends State<HomeScreen> {
               title: const Text("AI Deep Shield", style: TextStyle(color: Colors.white)), 
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("This feature is under development"),
+                  ),
                 );
               },
             ),
@@ -386,11 +406,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStatColumn("${state.totalFiles}", _isCleaning || _isOptimized ? "Files Cleaned" : "Files Out", const Color(0xFF00F2FE)),
+                    _buildStatColumn("${_engine.totalFiles}", _isCleaning || _isOptimized ? "Files Cleaned" : "Files Out", const Color(0xFF00F2FE)),
                     Container(width: 1, height: 22, color: Colors.white10),
-                    _buildStatColumn(formatBytes(state.totalBytes.toInt()), _isCleaning || _isOptimized ? "Space Freed" : "Junk Size", const Color(0xFFE040FB)),
+                    _buildStatColumn(formatBytes(_engine.totalBytes.toInt()), _isCleaning || _isOptimized ? "Space Freed" : "Junk Size", const Color(0xFFE040FB)),
                     Container(width: 1, height: 22, color: Colors.white10),
-                    _buildStatColumn(_isCleaning || state.scanning ? "${(state.progress * 100).toInt()}%" : "100%", _isCleaning ? "Cleaning..." : "Performance", const Color(0xFF00E676)),
+                    _buildStatColumn("${state.healthScore.toInt()}%", _isCleaning ? "Cleaning..." : "Performance", const Color(0xFF00E676)),
                   ],
                 ),
               ),
@@ -442,10 +462,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   TextButton(
                                     style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                                     onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => const DashboardScreen(),
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("This feature is under development"),
                                         ),
                                       );
                                     },
@@ -462,7 +481,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   border: Border.all(color: Colors.white.withOpacity(0.02)),
                                 ),
                                 child: logs.isEmpty
-                                    ? const Center(child: Text("No deep scanning logs registered yet.", style: TextStyle(color: Colors.white24, fontSize: 11)))
+                                    ? const Center(child: Text("No junk files found.", style: TextStyle(color: Colors.white24, fontSize: 11)))
                                     : ListView.builder(
                                         itemCount: logs.length,
                                         itemBuilder: (_, i) {
@@ -502,10 +521,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Icons.folder_open_outlined,
                                     "Large Files",
                                     () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => const DashboardScreen(),
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("This feature is under development"),
                                         ),
                                       );
                                     },
@@ -514,10 +532,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     Icons.copy_all_outlined,
                                     "Duplicates",
                                     () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => const DashboardScreen(),
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("This feature is under development"),
                                         ),
                                       );
                                     },
@@ -592,10 +609,9 @@ class _HomeScreenState extends State<HomeScreen> {
               break;
 
             case 2:
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const DashboardScreen(),
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("This feature is under development"),
                 ),
               );
               break;
@@ -636,15 +652,19 @@ class _HomeScreenState extends State<HomeScreen> {
       descText = "Analyzing...";
       txtColor = const Color(0xFFFFD700);
     } else if (_isOptimized) {
-      scoreText = "100%";
-      descText = "Excellent";
+      scoreText = "${state.healthScore.toInt()}%";
+      descText = "Optimized";
       txtColor = const Color(0xFF00E676);
       cardGrad = const LinearGradient(colors: [Color(0xFF00C6FF), Color(0xFF0072FF)]);
     } else if (_hasScanned) {
-      scoreText = "$healthScore%";
-      descText = healthScore > 80 ? "Good" : "Warning";
-      txtColor = healthScore > 80 ? const Color(0xFF00F2FE) : Colors.orangeAccent;
+      scoreText = "${state.healthScore.toInt()}%";
+      descText = state.healthScore > 80 ? "Good" : "Warning";
+      txtColor = state.healthScore > 80 ? const Color(0xFF00F2FE) : Colors.orangeAccent;
       cardGrad = LinearGradient(colors: [Colors.red.withOpacity(0.1), Colors.orange.withOpacity(0.02)]);
+    } else if (_engine.totalFiles > 0) {
+      scoreText = "${state.healthScore.toInt()}%";
+      descText = "Scanned";
+      txtColor = const Color(0xFF00F2FE);
     }
 
     return Container(
@@ -671,8 +691,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildDynamicStatusCard() {
     String statusTitle = _isCleaning ? "LIVE AI SCAN" : "SYSTEM STATUS";
-    String statusSub = _isCleaning ? "Purging Files" : (state.scanning ? "Optimizing Channels" : (_isOptimized ? "Secure" : "Idle State"));
-    
+    String statusSub = _isCleaning ? "Purging Files" : (state.scanning ? "Optimizing Channels" : (_isOptimized ? "Optimized" : "Idle"));
+
     return Container(
       padding: const EdgeInsets.all(12),
       height: 90,
@@ -737,35 +757,12 @@ class _HomeScreenState extends State<HomeScreen> {
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.02),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: Colors.white.withOpacity(0.04)),
             ),
-            child: Icon(icon, color: const Color(0xFF00F2FE), size: 18),
+            child: Icon(icon, color: Colors.white70, size: 20),
           ),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickAccessItem(IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(14),
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.02),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
-            ),
-            child: Icon(icon, color: const Color(0xFF00F2FE), size: 18),
-          ),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10)),
+          const SizedBox(height: 6),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
         ],
       ),
     );
