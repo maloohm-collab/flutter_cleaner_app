@@ -5,26 +5,30 @@ class CleanerEngine {
   final List<ScanItem> _results = [];
   final List<File> _discoveredFiles = [];
 
-  // قائمة امتدادات الملفات التي نعتبرها نفايات
-  final List<String> junkExtensions = [
-    '.tmp', '.log', '.cache', '.bak', '.temp', '.trash', '.old'
+  static const List<String> junkExtensions = [
+    '.tmp',
+    '.temp',
+    '.log',
+    '.cache',
+    '.bak',
+    '.old',
+    '.trash',
+    '.dmp',
   ];
 
   List<ScanItem> get results => List.unmodifiable(_results);
 
-  int get totalFiles => _results.fold<int>(0, (sum, item) => sum + item.files);
-  int get totalBytes => _results.fold<int>(0, (sum, item) => sum + item.bytes);
+  int get totalFiles =>
+      _results.fold(0, (sum, item) => sum + item.files);
+
+  int get totalBytes =>
+      _results.fold(0, (sum, item) => sum + item.bytes);
+
   int get totalItems => _results.length;
 
-  /// الحصول على مسارات الفحص المحددة يدوياً
   Future<List<Directory>> getScanDirectories() async {
     return [
-      Directory("/storage/emulated/0/Download"),
-      Directory("/storage/emulated/0/DCIM"),
-      Directory("/storage/emulated/0/Pictures"),
-      Directory("/storage/emulated/0/Movies"),
-      Directory("/storage/emulated/0/Android/media"),
-      Directory("/storage/emulated/0/Android/data"),
+      Directory("/storage/emulated/0"),
     ];
   }
 
@@ -35,65 +39,72 @@ class CleanerEngine {
     _results.clear();
     _discoveredFiles.clear();
 
-    try {
-      onStatus?.call("Initializing Smart Scan...");
-      onProgress?.call(0.1);
+    onStatus?.call("Initializing Smart Scan...");
+    onProgress?.call(0.05);
 
-      final directories = await getScanDirectories();
-      
-      int processed = 0;
-      for (final dir in directories) {
-        processed++;
-        onStatus?.call("Scanning: ${dir.path.split('/').last}...");
-        onProgress?.call(0.1 + (0.8 * (processed / directories.length)));
+    final roots = await getScanDirectories();
 
-        if (!await dir.exists()) continue;
+    int processed = 0;
 
-        int filesCount = 0;
-        int bytesCount = 0;
+    for (final root in roots) {
+      if (!await root.exists()) continue;
 
-        // الفحص التكراري مع الفلترة الآمنة
-        await for (final entity in dir.list(recursive: true, followLinks: false)) {
-          if (entity is File) {
-            try {
-              final fileSize = await entity.length();
-              final path = entity.path.toLowerCase();
-              
-              // الشروط التي تجعل الملف "نفايات" (Junk)
-              final bool isThumbnail = path.contains('/.thumbnails/');
-              final bool isEmpty = fileSize == 0;
-              final bool isJunkExt = junkExtensions.any((ext) => path.endsWith(ext));
+      int files = 0;
+      int bytes = 0;
 
-              // الإضافة للقائمة تتم فقط إذا كان الملف ضمن شروط المهملات
-              if (isThumbnail || isEmpty || isJunkExt) {
-                filesCount++;
-                bytesCount += fileSize;
-                _discoveredFiles.add(entity);
-              }
-            } catch (_) {}
+      await for (final entity
+          in root.list(recursive: true, followLinks: false)) {
+        if (entity is! File) continue;
+
+        try {
+          final path = entity.path.toLowerCase();
+          final size = await entity.length();
+
+          final bool isThumbnail =
+              path.contains("/.thumbnails/") ||
+              path.contains("/thumbnails/") ||
+              path.contains("/thumbnail/") ||
+              path.endsWith(".thumb") ||
+              path.endsWith(".thumbnail");
+
+          final bool isEmpty = size == 0;
+
+          final bool isJunk =
+              junkExtensions.any((e) => path.endsWith(e));
+
+          if (!(isThumbnail || isEmpty || isJunk)) {
+            continue;
           }
-        }
 
-        if (filesCount > 0) {
-          _results.add(
-            ScanItem(
-              id: dir.path.hashCode.toString(),
-              title: dir.path.split('/').last,
-              path: dir.path,
-              files: filesCount,
-              bytes: bytesCount,
-              selected: true,
-            ),
-          );
+          _discoveredFiles.add(entity);
+
+          files++;
+          bytes += size;
+        } catch (_) {}
+
+        processed++;
+
+        if (processed % 250 == 0) {
+          onProgress?.call(0.05 + (processed % 9000) / 9000);
         }
       }
 
-      onProgress?.call(1.0);
-      onStatus?.call("Scan Completed Successfully");
-    } catch (e) {
-      onStatus?.call("Scan interrupted: $e");
-      onProgress?.call(1.0);
+      if (files > 0) {
+        _results.add(
+          ScanItem(
+            id: root.path.hashCode.toString(),
+            title: "Junk Files",
+            path: root.path,
+            files: files,
+            bytes: bytes,
+            selected: true,
+          ),
+        );
+      }
     }
+
+    onProgress?.call(1);
+    onStatus?.call("Scan Completed");
 
     return results;
   }
@@ -102,38 +113,84 @@ class CleanerEngine {
     required List<ScanItem> selected,
     Function(String message)? onStatus,
   }) async {
-    int deletedCount = 0;
+    int deleted = 0;
 
-    if (selected.isEmpty) return 0;
-
-    onStatus?.call("Cleaning selected files...");
-    final selectedPaths = selected.map((s) => s.path).toList();
-
-    // نقوم بالحذف فقط للملفات التي تم التأكد أنها Junk
-    for (File file in List<File>.from(_discoveredFiles)) {
-      try {
-        final filePath = file.path;
-        
-        // التحقق من أن هذا الملف يقع ضمن المجلد المختار للحذف
-        final shouldDelete = selectedPaths.any((p) => filePath.startsWith(p));
-        
-        if (shouldDelete) {
-          if (await file.exists()) {
-            await file.delete();
-            deletedCount++;
-          }
-        }
-      } catch (e) {
-        onStatus?.call("Failed to delete: ${file.path}");
-      }
+    if (selected.isEmpty) {
+      return 0;
     }
 
-    // تنظيف القوائم بعد الحذف
-    _discoveredFiles.removeWhere((f) => !f.existsSync());
-    _results.removeWhere((r) => selectedPaths.any((p) => r.path == p));
+    onStatus?.call("Deleting junk files...");
+        final selectedPaths = selected
+        .map((e) => e.path)
+        .toList();
 
-    onStatus?.call("Optimization Complete.");
-    return deletedCount;
+    for (final file in List<File>.from(_discoveredFiles)) {
+      try {
+        final path = file.path;
+
+        final shouldDelete = selectedPaths.any(
+          (p) => path.startsWith(p),
+        );
+
+        if (!shouldDelete) {
+          continue;
+        }
+
+        if (await file.exists()) {
+          await file.delete();
+
+          deleted++;
+
+          if (deleted % 100 == 0) {
+            onStatus?.call(
+              "Deleted $deleted files...",
+            );
+          }
+        }
+      } catch (_) {}
+    }
+
+    _discoveredFiles.removeWhere(
+      (f) => !f.existsSync(),
+    );
+
+    _results.clear();
+
+    onStatus?.call(
+      "Optimization Complete",
+    );
+
+    return deleted;
+  }
+
+  int calculateHealthScore() {
+    if (_results.isEmpty) {
+      return 100;
+    }
+
+    final score =
+        100 - (totalFiles ~/ 20);
+
+    if (score < 60) {
+      return 60;
+    }
+
+    return score;
+  }
+
+  String formatBytes(int bytes) {
+    if (bytes < 1024) {
+      return "$bytes B";
+    }
+
+    if (bytes < 1024 * 1024) {
+      return "${(bytes / 1024).toStringAsFixed(1)} KB";
+    }
+
+    if (bytes < 1024 * 1024 * 1024) {
+      return "${(bytes / 1024 / 1024).toStringAsFixed(2)} MB";
+    }
+
+    return "${(bytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GB";
   }
 }
-
