@@ -1,0 +1,40 @@
+# ===============================================================
+# Project      : AI Cleaner
+# File         : codemagic.yaml
+# Version      : 1.0.0
+# Last Updated : 2026-10-10
+#
+# Purpose:
+# Build Android release APK using Codemagic CI/CD.
+#
+# Safety:
+# - Runs flutter analyze before building.
+# - Does not publish the application automatically.
+# - Requires device testing after a successful build.
+# ===============================================================
+
+workflows:
+  android-workflow:
+    name: AI Cleaner Android
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    environment:
+      flutter: stable
+      java: 17
+
+    scripts:
+      - name: Get Flutter dependencies
+        script: |
+          flutter pub get
+
+      - name: Analyze Flutter project
+        script: |
+          flutter analyze
+
+      - name: Build Android release APK
+        script: |
+          flutter build apk --release --no-tree-shake-icons
+
+    artifacts:
+      - build/**/outputs/**/*.apk
