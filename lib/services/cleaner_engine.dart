@@ -1,172 +1,129 @@
-// ============================================================================
-// Project      : AI Cleaner
-// File         : lib/services/cleaner_engine.dart
-// Version      : 1.2.0
-// Last Updated : 2026-10-10
-// Purpose      : فحص الملفات المؤقتة والمرشحة للتنظيف في وحدة التخزين المشتركة،
-//                وتجميع نتائج الفحص حسب الفئة، وتنفيذ الحذف بعد اختيار المستخدم.
-// ----------------------------------------------------------------------------
-// Changes in v1.2.0:
-// - تحسين أمان اكتشاف الملفات المرشحة للحذف.
-// - عدم اعتبار كل ملف يحتوي مساره على cache أو temp ملفًا غير ضروري.
-// - جعل عناصر نتائج الفحص غير محددة للحذف افتراضيًا.
-// - استبدال حساب أحجام الملفات المتزامن بحساب غير متزامن.
-// - منع تكرار حذف المسارات والتحقق منها قبل الحذف.
-// - تجاهل Android/data و Android/obb.
-// - تحسين معالجة أخطاء الفحص والحذف وتحديث رسائل الحالة.
-// - الحفاظ على الواجهات العامة الأساسية للتوافق مع أجزاء المشروع.
-// ----------------------------------------------------------------------------
-// Safety Notes:
-// - لا يضمن هذا الفحص أن كل ملف مرشح للحذف غير مهم؛ راجع النتائج قبل الحذف.
-// - لا يستطيع التطبيق حذف ذاكرة التخزين الخاصة بالتطبيقات الأخرى بصورة عامة.
-// - لا يجري هذا الملف تنظيفًا تلقائيًا أثناء الفحص.
-// - صلاحية MANAGE_EXTERNAL_STORAGE لا تضمن تجاوز جميع قيود Android.
-// - درجة صحة الجهاز المحسوبة هنا تقديرية وليست قياسًا فعليًا لصحة النظام.
-// ----------------------------------------------------------------------------
-// Dependencies:
-// - dart:io
-// - lib/models/scan_item.dart أو المسار الفعلي الذي يعرّف ScanItem.
-// ----------------------------------------------------------------------------
-// Compatibility:
-// - يحافظ على CleanerEngine.scan() و CleanerEngine.clean().
-// - يحافظ على النتائج والإحصاءات والدوال المساعدة الأساسية.
-// - لم يُنفّذ بناء Flutter أو اختبار على جهاز فعلي ضمن هذه المراجعة.
-// ============================================================================
+
+/// ===============================================================
+/// Project      : AI Cleaner
+/// File         : lib/services/cleaner_engine.dart
+/// Version      : 1.2.1
+/// Last Updated : 2026-10-10
+///
+/// Purpose:
+/// محرك فحص التخزين وتصنيف الملفات المرشحة للتنظيف،
+—/// مع التحقق من المسارات والعناصر قبل الحذف.
+///
+/// Changelog:
+/// - تصحيح استيراد ScanItem إلى المسار الصحيح.
+/// - منع معالجة العناصر غير الموجودة في نتائج الفحص الحالي.
+/// - التحقق من اختيار العنصر وصلاحيته قبل الحذف.
+/// - استبعاد Android/data و Android/obb.
+/// - جعل العناصر غير محددة افتراضيًا.
+/// - تحسين التعامل مع أخطاء الوصول إلى الملفات.
+///
+/// Safety Notes:
+/// - نتائج الفحص مرشحات وليست ضمانًا بأن الملفات غير مهمة.
+/// - لا يتم حذف الملفات إلا بعد اختيار فئتها صراحةً.
+/// - لا يحاول هذا المحرك مسح البيانات الخاصة بالتطبيقات الأخرى.
+/// - يتطلب الوصول إلى التخزين الأذونات المناسبة على Android.
+///
+/// Compatibility:
+/// - يعتمد على lib/services/scan_item.dart.
+/// - يحافظ على واجهتي scan() و clean() المستخدمتين في HomeScreen.
+/// - لم يُجرَ بناء Flutter أو flutter analyze لهذا الملف.
+///
+/// Dependencies:
+/// - dart:io
+/// - scan_item.dart
+/// ===============================================================
 
 import 'dart:io';
 
-import '../models/scan_item.dart';
+import 'scan_item.dart';
 
-/// محرك فحص وتنظيف الملفات المرشحة للحذف.
-///
-/// ملاحظة مهمة:
-/// هذا المحرك لا ينظف ذاكرة التطبيقات الأخرى الخاصة، ولا ينفذ حذفًا
-/// أثناء عملية الفحص. يجب أن يختار المستخدم العناصر التي يريد تنظيفها.
 class CleanerEngine {
   CleanerEngine();
 
-  // --------------------------------------------------------------------------
-  // ثوابت الفئات
-  // --------------------------------------------------------------------------
-
-  static const String _temporaryId = 'temporary_files';
-  static const String _thumbnailId = 'thumbnail_files';
-
-  /// امتدادات ملفات مؤقتة محتملة.
-  ///
-  /// وجود أحد هذه الامتدادات لا يثبت وحده أن الملف غير مهم؛ لذلك تُعرض
-  /// الملفات ضمن نتائج الفحص ولا تُحذف إلا بعد اختيار المستخدم.
+  /// امتدادات الملفات المؤقتة التي يبحث عنها المحرك.
   static const List<String> junkExtensions = <String>[
     '.tmp',
     '.temp',
     '.trash',
   ];
 
-  /// مجلدات تُستخدم عادةً لحفظ ملفات مؤقتة.
+  /// جذر التخزين المشترك على أجهزة Android.
+  static const String _storageRoot = '/storage/emulated/0';
+
+  /// نتائج آخر عملية فحص.
+  List<ScanItem> _results = <ScanItem>[];
+
+  /// الملفات المكتشفة لكل فئة في آخر عملية فحص.
   ///
-  /// نتجنب اعتبار كل مجلد يحتوي على كلمة cache مرشحًا للحذف؛ فقد يحتوي
-  /// على ملفات يحتاجها المستخدم أو تطبيق آخر.
-  static const Set<String> _temporaryDirectoryNames = <String>{
-    'temp',
-    'tmp',
-  };
-
-  // --------------------------------------------------------------------------
-  // بيانات الفحص
-  // --------------------------------------------------------------------------
-
-  final List<ScanItem> _results = <ScanItem>[];
-
-  /// الملفات التي اكتُشفت لكل فئة أثناء آخر عملية فحص.
-  ///
-  /// لا تُقبل عملية الحذف اعتمادًا على مسار يرسله المستدعي فقط؛
-  /// بل يجب أن تكون الفئة قد سُجلت ضمن نتائج الفحص الحالي.
+  /// المفاتيح هي معرفات الفئات، والقيم هي الملفات الفعلية
+  /// التي اكتشفها الفحص، وليست المسارات المعروضة في الواجهة.
   final Map<String, List<File>> _filesByCategory =
       <String, List<File>>{};
 
-  /// المسار الأساسي الذي يجري فحصه.
-  static const String _storageRootPath = '/storage/emulated/0';
+  /// الملفات التي جرى فحصها في آخر عملية فحص.
+  int _totalFiles = 0;
 
-  /// نسخة غير قابلة للتعديل من نتائج الفحص.
+  /// الحجم الإجمالي للملفات المرشحة، بالبايت.
+  int _totalBytes = 0;
+
   List<ScanItem> get results => List<ScanItem>.unmodifiable(_results);
 
-  /// عدد الملفات المكتشفة ضمن الفئات المرشحة.
-  int get totalFiles =>
-      _results.fold<int>(0, (sum, item) => sum + item.files);
+  int get totalFiles => _totalFiles;
 
-  /// إجمالي أحجام الملفات المرشحة بالبايت.
-  int get totalBytes =>
-      _results.fold<int>(0, (sum, item) => sum + item.bytes);
+  int get totalBytes => _totalBytes;
 
-  /// عدد الفئات التي ظهرت في نتائج الفحص.
   int get totalItems => _results.length;
 
-  // --------------------------------------------------------------------------
-  // مجلدات الفحص
-  // --------------------------------------------------------------------------
-
-  /// إرجاع مجلد التخزين المشترك الذي يدعمه هذا المحرك.
-  ///
-  /// قد لا يكون هذا المسار متاحًا على جميع الأجهزة أو إصدارات Android.
-  Future<List<Directory>> getScanDirectories() async {
-    final Directory root = Directory(_storageRootPath);
-
-    if (!await root.exists()) {
-      return <Directory>[];
-    }
-
-    return <Directory>[root];
+  /// يعيد مجلد التخزين الذي سيبدأ منه الفحص.
+  List<Directory> getScanDirectories() {
+    return <Directory>[Directory(_storageRoot)];
   }
 
-  // --------------------------------------------------------------------------
-  // عملية الفحص
-  // --------------------------------------------------------------------------
-
-  /// فحص الملفات وجمعها حسب الفئة.
+  /// يفحص التخزين ويصنف الملفات المرشحة للتنظيف.
   ///
-  /// [onStatus] لإرسال وصف موجز للحالة.
-  /// [onProgress] لتحديث التقدم التقريبي بين 0 و1.
+  /// onStatus: رسالة توضح المرحلة الحالية.
+  /// onProgress: نسبة تقدم تقريبية بين 0.0 و 1.0.
   ///
   /// ملاحظة:
-  /// نسبة التقدم تقديرية؛ لأن عدد الملفات الكلي غير معروف قبل الفحص.
+  /// النسبة تقريبية؛ عدد الملفات النهائي غير معروف قبل اكتمال الفحص.
   Future<List<ScanItem>> scan({
-    Function(String message)? onStatus,
-    Function(double progress)? onProgress,
+    Function(String)? onStatus,
+    Function(double)? onProgress,
   }) async {
-    _results.clear();
+    _results = <ScanItem>[];
     _filesByCategory.clear();
+    _totalFiles = 0;
+    _totalBytes = 0;
 
-    final Map<String, List<File>> foundFiles =
+    final Map<String, List<File>> groupedFiles =
         <String, List<File>>{
-      _temporaryId: <File>[],
-      _thumbnailId: <File>[],
+      'temporary_files': <File>[],
+      'thumbnail_files': <File>[],
     };
 
-    final Map<String, int> categoryBytes = <String, int>{
-      _temporaryId: 0,
-      _thumbnailId: 0,
+    final Map<String, int> groupedBytes = <String, int>{
+      'temporary_files': 0,
+      'thumbnail_files': 0,
     };
 
-    final List<Directory> roots = await getScanDirectories();
+    final Directory root = Directory(_storageRoot);
 
-    if (roots.isEmpty) {
-      onStatus?.call('مجلد التخزين المشترك غير متاح.');
+    if (!await root.exists()) {
+      onStatus?.call('مجلد التخزين غير متاح.');
       onProgress?.call(1.0);
-      return results;
+      return _results;
     }
 
-    final List<Directory> pendingDirectories = <Directory>[...roots];
-
-    int visitedFiles = 0;
+    final List<Directory> queue = <Directory>[root];
     int visitedDirectories = 0;
+    int visitedFiles = 0;
 
-    onStatus?.call('بدء فحص الملفات المرشحة للتنظيف...');
-    onProgress?.call(0.0);
+    onStatus?.call('جارٍ فحص الملفات...');
 
-    while (pendingDirectories.isNotEmpty) {
-      final Directory currentDirectory = pendingDirectories.removeLast();
+    while (queue.isNotEmpty) {
+      final Directory currentDirectory = queue.removeLast();
 
-      if (!_isAllowedDirectory(currentDirectory.path)) {
+      if (!_isAllowedPath(currentDirectory.path)) {
         continue;
       }
 
@@ -176,21 +133,19 @@ class CleanerEngine {
           recursive: false,
           followLinks: false,
         )) {
-          // لا نتبع الروابط الرمزية؛ لتجنب الخروج إلى مسارات أخرى.
+          // نتجاهل الروابط الرمزية لتجنب تتبع مسارات غير متوقعة.
           if (entity is Link) {
             continue;
           }
 
           if (entity is Directory) {
-            if (_isAllowedDirectory(entity.path)) {
-              pendingDirectories.add(entity);
+            if (_isAllowedPath(entity.path)) {
+              queue.add(entity);
             }
-
-            visitedDirectories++;
             continue;
           }
 
-          if (entity is! File) {
+          if (entity is! File || !_isAllowedPath(entity.path)) {
             continue;
           }
 
@@ -202,68 +157,180 @@ class CleanerEngine {
             continue;
           }
 
+          int fileBytes;
+
           try {
-            final int fileBytes = await entity.length();
-
-            foundFiles[categoryId]!.add(entity);
-            categoryBytes[categoryId] =
-                categoryBytes[categoryId]! + fileBytes;
+            fileBytes = await entity.length();
           } on FileSystemException {
-            // قد يتعذر الوصول إلى بعض الملفات بسبب قيود النظام.
-            // نتجاوز الملف المتعذر بدل إيقاف عملية الفحص كاملة.
-          } on IOException {
-            // تجاوز أخطاء القراءة الخاصة بهذا الملف فقط.
+            // قد يتعذر الوصول إلى الملف أو يكون قد اختفى.
+            continue;
           }
 
-          // تحديث التقدم كل 100 ملف لتقليل تحديثات الواجهة.
-          if (visitedFiles % 100 == 0) {
-            onStatus?.call('تم فحص $visitedFiles ملف...');
-            onProgress?.call(
-              _estimateProgress(
-                visitedFiles,
-                visitedDirectories,
-              ),
-            );
-          }
+          groupedFiles[categoryId]!.add(entity);
+          groupedBytes[categoryId] =
+              groupedBytes[categoryId]! + fileBytes;
+
+          _totalFiles++;
+          _totalBytes += fileBytes;
         }
       } on FileSystemException {
-        // بعض المجلدات قد تكون غير قابلة للقراءة.
-        // يستمر الفحص في بقية المجلدات المتاحة.
-      } on IOException {
-        // لا نوقف الفحص بالكامل بسبب مجلد واحد.
+        // نتجاوز المجلدات التي لا تسمح المنصة بقراءتها.
+        // لا يعني ذلك أن الفحص شمل كل ملفات الجهاز.
+      }
+
+      visitedDirectories++;
+
+      // تقدم تقريبي يمنع إظهار 100% قبل انتهاء الفحص.
+      final double progress =
+          1.0 - (1.0 / (visitedDirectories + queue.length + 1));
+
+      onProgress?.call(progress.clamp(0.0, 0.95));
+    }
+
+    onStatus?.call('جارٍ تجهيز نتائج الفحص...');
+
+    _addCategory(
+      id: 'temporary_files',
+      title: 'الملفات المؤقتة',
+      descriptionPath: 'category://temporary_files',
+      files: groupedFiles['temporary_files']!,
+      bytes: groupedBytes['temporary_files']!,
+    );
+
+    _addCategory(
+      id: 'thumbnail_files',
+      title: 'ملفات الصور المصغرة',
+      descriptionPath: 'category://thumbnail_files',
+      files: groupedFiles['thumbnail_files']!,
+      bytes: groupedBytes['thumbnail_files']!,
+    );
+
+    onProgress?.call(1.0);
+    onStatus?.call('اكتمل الفحص.');
+
+    return List<ScanItem>.unmodifiable(_results);
+  }
+
+  /// يحذف الملفات التابعة للفئات المختارة فقط.
+  ///
+  /// يعيد عدد الملفات التي حُذفت بنجاح.
+  ///
+  /// يجب أن تكون العناصر المرسلة من نتائج الفحص الحالي،
+  /// وأن تكون محددة وقابلة للمعالجة.
+  Future<int> clean({
+    required List<ScanItem> selected,
+    Function(String)? onStatus,
+  }) async {
+    if (selected.isEmpty) {
+      onStatus?.call('لم يتم اختيار أي فئة للتنظيف.');
+      return 0;
+    }
+
+    int deletedFiles = 0;
+    final Set<String> processedPaths = <String>{};
+
+    // نتحقق من النتائج الحالية بدل الاعتماد على بيانات الواجهة وحدها.
+    final Map<String, ScanItem> currentItems =
+        <String, ScanItem>{
+      for (final ScanItem item in _results) item.id: item,
+    };
+
+    onStatus?.call('جارٍ التحقق من الملفات المحددة...');
+
+    for (final ScanItem requestedItem in selected) {
+      final ScanItem? currentItem = currentItems[requestedItem.id];
+
+      if (currentItem == null) {
+        continue;
+      }
+
+      // لا يكفي أن تكون النسخة المرسلة من الواجهة محددة.
+      if (!requestedItem.selected ||
+          !currentItem.selected ||
+          !requestedItem.safeToDelete ||
+          !currentItem.safeToDelete) {
+        continue;
+      }
+
+      final List<File>? categoryFiles =
+          _filesByCategory[currentItem.id];
+
+      if (categoryFiles == null) {
+        continue;
+      }
+
+      for (final File file in categoryFiles) {
+        final String normalizedPath = _normalizePath(file.path);
+
+        if (!_isAllowedPath(normalizedPath)) {
+          continue;
+        }
+
+        // يمنع تكرار معالجة المسار نفسه دون تغيير حالة الأحرف
+        // في المسار الفعلي الذي سيُستخدم للحذف.
+        if (!processedPaths.add(normalizedPath)) {
+          continue;
+        }
+
+        try {
+          if (!await file.exists()) {
+            continue;
+          }
+
+          // إعادة التحقق مباشرة قبل الحذف.
+          if (!_isAllowedPath(file.path)) {
+            continue;
+          }
+
+          await file.delete();
+          deletedFiles++;
+        } on FileSystemException {
+          // نتجاوز الملف الذي تعذر حذفه ونواصل بقية الملفات.
+        }
       }
     }
 
-    _addCategoryResult(
-      id: _temporaryId,
-      title: 'الملفات المؤقتة',
-      files: foundFiles[_temporaryId]!,
-      bytes: categoryBytes[_temporaryId]!,
-    );
+    // تُمسح نتائج الفحص السابقة بعد انتهاء عملية التنظيف؛
+    // يجب إجراء فحص جديد لتحديث القائمة والأحجام.
+    _results = <ScanItem>[];
+    _filesByCategory.clear();
 
-    _addCategoryResult(
-      id: _thumbnailId,
-      title: 'ملفات الصور المصغرة',
-      files: foundFiles[_thumbnailId]!,
-      bytes: categoryBytes[_thumbnailId]!,
-    );
-
-    onStatus?.call(
-      'اكتمل الفحص: '
-      '${_results.fold<int>(0, (sum, item) => sum + item.files)} '
-      'ملف مرشح.',
-    );
-    onProgress?.call(1.0);
-
-    return results;
+    onStatus?.call('انتهت عملية التنظيف.');
+    return deletedFiles;
   }
 
-  /// إضافة نتيجة فئة إذا كانت تحتوي على ملفات.
-  ///
-  /// selected=false يمنع تحديد الفئة تلقائيًا للحذف.
-  void _addCategoryResult({
+  /// يصنف الملف ضمن الفئات المدعومة فقط.
+  String? _classifyFile(String filePath) {
+    final String normalized = _normalizePath(filePath);
+    final String lowerPath = normalized.toLowerCase();
+
+    if (_isThumbnailPath(lowerPath)) {
+      return 'thumbnail_files';
+    }
+
+    final String fileName =
+        lowerPath.split('/').isEmpty ? lowerPath : lowerPath.split('/').last;
+
+    if (junkExtensions.any(fileName.endsWith)) {
+      return 'temporary_files';
+    }
+
+    final List<String> segments = lowerPath.split('/');
+
+    if (segments.any(
+      (String segment) => segment == 'temp' || segment == 'tmp',
+    )) {
+      return 'temporary_files';
+    }
+
+    return null;
+  }
+
+  /// ينشئ نتيجة الفئة بعد تجميع الملفات المكتشفة.
+  void _addCategory({
     required String id,
     required String title,
+    required String descriptionPath,
     required List<File> files,
     required int bytes,
   }) {
@@ -277,268 +344,81 @@ class CleanerEngine {
       ScanItem(
         id: id,
         title: title,
-        path: 'category://$id',
+        path: descriptionPath,
         files: files.length,
         bytes: bytes,
+        // تعني أن الفئة مسموح بعرضها للاختيار،
+        // ولا تعني أن كل ملف فيها مضمون الأمان للحذف.
         safeToDelete: true,
         selected: false,
       ),
     );
   }
 
-  /// تقدير تقريبي للتقدم دون الادعاء بمعرفة العدد الكلي للملفات.
-  double _estimateProgress(int files, int directories) {
-    final int workUnits = files + (directories * 5);
-
-    // تظل النسبة أقل من 100% إلى أن ينتهي الفحص فعليًا.
-    final double progress = workUnits / (workUnits + 500.0);
-
-    return progress.clamp(0.0, 0.95).toDouble();
-  }
-
-  // --------------------------------------------------------------------------
-  // تصنيف الملفات
-  // --------------------------------------------------------------------------
-
-  /// إرجاع معرّف الفئة للملف المرشح، أو null إذا لم يطابق القواعد.
-  String? _classifyFile(String filePath) {
-    final String normalizedPath = _normalizePath(filePath);
-
-    if (!_isInsideRoot(normalizedPath)) {
-      return null;
-    }
-
-    if (!_isAllowedDirectory(normalizedPath)) {
-      return null;
-    }
-
-    if (_isThumbnailPath(normalizedPath)) {
-      return _thumbnailId;
-    }
-
-    if (_hasTemporaryExtension(normalizedPath) ||
-        _isInsideTemporaryDirectory(normalizedPath)) {
-      return _temporaryId;
-    }
-
-    return null;
-  }
-
-  /// اكتشاف مجلد الصور المصغرة المخفي تحديدًا.
+  /// يتحقق من أن المسار يقع داخل جذر التخزين المسموح.
   ///
-  /// نتجنب تصنيف كل مجلد يحمل كلمة thumbnails؛ لأن بعض هذه المجلدات
-  /// قد يحتوي على صور أصلية أو ملفات أنشأها المستخدم.
-  bool _isThumbnailPath(String normalizedPath) {
-    final List<String> segments = normalizedPath.split('/');
+  /// ويستبعد Android/data و Android/obb صراحةً.
+  bool _isAllowedPath(String path) {
+    final String normalized = _normalizePath(path);
+    final String lowerPath = normalized.toLowerCase();
+    final String lowerRoot = _storageRoot.toLowerCase();
 
-    return segments.any((segment) => segment == '.thumbnails');
-  }
-
-  bool _hasTemporaryExtension(String normalizedPath) {
-    return junkExtensions.any(normalizedPath.endsWith);
-  }
-
-  bool _isInsideTemporaryDirectory(String normalizedPath) {
-    final List<String> segments = normalizedPath.split('/');
-
-    return segments.any(_temporaryDirectoryNames.contains);
-  }
-
-  // --------------------------------------------------------------------------
-  // التحقق من المسارات
-  // --------------------------------------------------------------------------
-
-  /// توحيد فواصل المسارات للمقارنة فقط.
-  ///
-  /// لا نستخدم المسار الموحّد بدل المسار الأصلي عند الحذف.
-  String _normalizePath(String path) {
-    return path.replaceAll('\\', '/').replaceAll(RegExp(r'/+'), '/');
-  }
-
-  /// التأكد من أن المسار داخل التخزين المشترك المحدد.
-  bool _isInsideRoot(String path) {
-    final String normalized = _normalizePath(path).toLowerCase();
-    const String root = _storageRootPath;
-
-    return normalized == root ||
-        normalized.startsWith('$root/');
-  }
-
-  /// استبعاد المسارات التي لا ينبغي للمحرك التعامل معها.
-  ///
-  /// المقارنة تراعي حدود المجلد حتى لا تُستبعد أسماء مشابهة بالخطأ.
-  bool _isAllowedDirectory(String path) {
-    final String normalized = _normalizePath(path).toLowerCase();
-
-    if (!_isInsideRoot(normalized)) {
+    if (lowerPath != lowerRoot &&
+        !lowerPath.startsWith('$lowerRoot/')) {
       return false;
     }
 
-    const String root = _storageRootPath;
-    final String relativePath = normalized == root
-        ? ''
-        : normalized.substring(root.length + 1);
+    final List<String> segments = lowerPath.split('/');
 
-    final List<String> segments = relativePath.split('/');
-
-    if (segments.isEmpty) {
-      return true;
-    }
-
-    // استبعاد مجلدات بيانات التطبيقات وملفات توسعتها.
-    if (segments.length >= 2 &&
-        segments[0] == 'android' &&
-        (segments[1] == 'data' || segments[1] == 'obb')) {
-      return false;
+    for (int i = 0; i < segments.length - 1; i++) {
+      if (segments[i] == 'android' &&
+          (segments[i + 1] == 'data' ||
+              segments[i + 1] == 'obb')) {
+        return false;
+      }
     }
 
     return true;
   }
 
-  // --------------------------------------------------------------------------
-  // عملية التنظيف
-  // --------------------------------------------------------------------------
+  /// يتحقق من وجود مجلد صور مصغرة في المسار.
+  bool _isThumbnailPath(String lowerPath) {
+    final List<String> segments = lowerPath.split('/');
 
-  /// حذف الملفات التابعة للفئات التي اختارها المستخدم.
-  ///
-  /// [selected] عناصر ScanItem التي أعادت عملية scan().
-  /// [onStatus] لاستقبال رسائل الحالة.
-  ///
-  /// تعيد الدالة عدد الملفات التي حُذفت بنجاح.
-  ///
-  /// تنبيه:
-  /// يجب تمرير نتائج الفحص الحالي بعد تحديث selected في الواجهة.
-  /// لا تُحذف أي فئة غير مسجلة في نتائج الفحص الحالي.
-  Future<int> clean({
-    required List<ScanItem> selected,
-    Function(String message)? onStatus,
-  }) async {
-    if (_filesByCategory.isEmpty) {
-      onStatus?.call('لا توجد نتائج فحص صالحة للتنظيف.');
-      return 0;
-    }
-
-    int deletedFiles = 0;
-    int failedFiles = 0;
-    int processedFiles = 0;
-
-    final Set<String> deletedPaths = <String>{};
-
-    final Map<String, ScanItem> currentResults =
-        <String, ScanItem>{
-      for (final ScanItem item in _results) item.id: item,
-    };
-
-    final Set<String> selectedCategoryIds = <String>{};
-
-    for (final ScanItem item in selected) {
-      final ScanItem? currentItem = currentResults[item.id];
-
-      if (currentItem == null ||
-          !item.selected ||
-          !item.safeToDelete ||
-          !_filesByCategory.containsKey(item.id)) {
-        continue;
-      }
-
-      selectedCategoryIds.add(item.id);
-    }
-
-    if (selectedCategoryIds.isEmpty) {
-      onStatus?.call('لم يتم تحديد أي فئة للتنظيف.');
-      return 0;
-    }
-
-    onStatus?.call('بدء تنظيف الملفات المحددة...');
-
-    for (final String categoryId in selectedCategoryIds) {
-      final List<File> files =
-          _filesByCategory[categoryId] ?? <File>[];
-
-      for (final File file in files) {
-        final String originalPath = file.path;
-        final String normalizedPath = _normalizePath(originalPath);
-        final String comparisonPath = normalizedPath.toLowerCase();
-
-        // تحقق جديد قبل كل عملية حذف.
-        if (!_isInsideRoot(comparisonPath) ||
-            !_isAllowedDirectory(comparisonPath)) {
-          failedFiles++;
-          continue;
-        }
-
-        if (!deletedPaths.add(comparisonPath)) {
-          continue;
-        }
-
-        try {
-          if (!await file.exists()) {
-            // الملف اختفى بعد الفحص؛ لا نعدّه ملفًا محذوفًا بنجاح.
-            continue;
-          }
-
-          final int fileBytes = await file.length();
-
-          await file.delete();
-
-          deletedFiles++;
-
-          onStatus?.call(
-            'تم حذف ملف: ${_basename(originalPath)} '
-            '(${formatBytes(fileBytes)}).',
-          );
-        } on FileSystemException {
-          failedFiles++;
-        } on IOException {
-          failedFiles++;
-        }
-
-        processedFiles++;
-      }
-    }
-
-    // نتائج الفحص أصبحت قديمة بعد عملية التنظيف.
-    // يُطلب فحص جديد لتحديث الأحجام وعدد الملفات.
-    _results.clear();
-    _filesByCategory.clear();
-
-    onStatus?.call(
-      'انتهى التنظيف. '
-      'تم حذف $deletedFiles ملف، '
-      'وتعذر حذف $failedFiles ملف.',
+    return segments.any(
+      (String segment) => segment == '.thumbnails',
     );
-
-    return deletedFiles;
   }
 
-  String _basename(String path) {
-    final String normalized = _normalizePath(path);
-    final List<String> segments = normalized.split('/');
+  /// يوحد فواصل المسارات ويزيل الفواصل المكررة.
+  String _normalizePath(String path) {
+    String normalized = path.replaceAll(r'\', '/');
 
-    return segments.isEmpty ? path : segments.last;
+    while (normalized.contains('//')) {
+      normalized = normalized.replaceAll('//', '/');
+    }
+
+    if (normalized.length > 1 && normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+
+    return normalized;
   }
 
-  // --------------------------------------------------------------------------
-  // الإحصاءات والمساعدة
-  // --------------------------------------------------------------------------
-
-  /// حساب درجة تقديرية بناءً على حجم الملفات المكتشفة.
+  /// يحسب مؤشرًا تقريبيًا بناءً على عدد الملفات المرشحة.
   ///
-  /// هذه القيمة مؤشر توضيحي داخل الواجهة فقط، وليست فحصًا لصحة الجهاز.
+  /// هذا المؤشر ليس قياسًا حقيقيًا لصحة الجهاز أو أدائه.
   int calculateHealthScore() {
-    if (_results.isEmpty) {
+    if (_totalFiles == 0) {
       return 100;
     }
 
-    final double sizeInMb = totalBytes / (1024 * 1024);
-
-    // تخفيض محدود وتدريجي بحسب حجم الملفات المرشحة.
-    final int penalty = (sizeInMb / 100).floor();
-
-    return (100 - penalty).clamp(0, 100).toInt();
+    // مؤشر توضيحي فقط؛ لا يُستخدم لتشخيص حالة الجهاز.
+    final int score = 100 - (_totalFiles ~/ 100);
+    return score.clamp(0, 100);
   }
 
-  /// تحويل عدد البايتات إلى صيغة مقروءة.
+  /// يحول عدد البايتات إلى صيغة مقروءة.
   static String formatBytes(int bytes) {
     if (bytes < 0) {
       return 'غير معروف';
@@ -549,7 +429,7 @@ class CleanerEngine {
     }
 
     if (bytes < 1024 * 1024) {
-      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+      return '${(bytes / 1024).toStringAsFixed(2)} KB';
     }
 
     if (bytes < 1024 * 1024 * 1024) {
