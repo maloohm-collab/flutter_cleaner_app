@@ -1,20 +1,51 @@
- // Path: lib/screens/home_screen.dart
- //
- // Project: AI Cleaner / AI Optimizer
- // Purpose: الواجهة الرئيسية للفحص والتنظيف الفعلي للملفات المرشحة.
- //
- // ملاحظات مهمة:
- // 1. هذا الملف مسؤول عن الواجهة والصلاحيات وتنسيق عملية التنظيف.
- // 2. CleanerEngine هو المسؤول عن اكتشاف الملفات وحذف الملفات التي اختارها المستخدم.
- // 3. لا نعتبر كل ملف مؤقت ملفًا غير مهم؛ لذلك يجب مراجعة العناصر قبل حذفها.
- // 4. لا ندّعي تنظيف ذاكرة التطبيقات الأخرى الخاصة، لأن Android لا يسمح بذلك
- //    للتطبيقات العادية دون صلاحيات نظام خاصة.
- // 5. لا نعرض مساحة محددة على أنها مساحة محررة فعلًا؛ الحجم المعروض تقديري.
- // 6. لا توجد خطوات تنظيف وهمية أو إعادة فحص تلقائية بعد انتهاء الحذف.
+// ============================================================================
+// Project      : AI Cleaner / AI Optimizer
+// File         : lib/screens/home_screen.dart
+// Version      : 1.1.0
+// Last Updated : 2026-10-10
+// Purpose      : الواجهة الرئيسية لفحص الملفات المرشحة، وعرض النتائج، والسماح
+//                للمستخدم باختيار الملفات وتأكيد حذفها من خلال CleanerEngine.
+// ----------------------------------------------------------------------------
+// Changes in v1.1.0:
+// - إصلاح قابلية تعديل قائمة نتائج الفحص في الواجهة.
+// - إضافة استيراد PlatformException الصحيح.
+// - الحفاظ على التصميم العام ومكونات الواجهة الحالية.
+// - منع بدء الفحص أثناء التنظيف أو بدء فحص آخر.
+// - إبقاء تأكيد المستخدم شرطًا قبل الحذف.
+// - توضيح الفرق بين الحجم المرصود والحجم المحرر فعليًا.
+// - عدم الادعاء بتنظيف بيانات التطبيقات الأخرى الخاصة.
+// ----------------------------------------------------------------------------
+// Safety Notes:
+// - الملفات المرشحة ليست بالضرورة ملفات غير مهمة.
+// - لا يتم الحذف قبل موافقة المستخدم.
+// - نتائج الفحص لا تعني أن الملفات حُذفت.
+// - الحجم المحدد للحذف ليس ضمانًا للحجم الذي سيتحرر فعليًا.
+// - يجب أن يتحقق CleanerEngine من المسارات قبل الحذف.
+// ----------------------------------------------------------------------------
+// Dependencies:
+// - flutter/material.dart
+// - flutter/services.dart
+// - permission_handler
+// - services/cleaner_engine.dart
+// - services/scan_item.dart
+// - models/dashboard_state.dart
+// - widgets/scan_result_card.dart
+// - widgets/animated_button.dart
+// - widgets/progress_ring.dart
+// - utils/colors.dart
+// - screens/settings_screen.dart
+// ----------------------------------------------------------------------------
+// Compatibility:
+// - يحافظ على HomeScreen وstartAnalysis وperformCleaning.
+// - يحافظ على المكونات والأدوات المستخدمة في التصميم الحالي.
+// - يجب أن يتوافق ScanResultCard مع item وonChanged.
+// - لم يُنفّذ بناء Flutter أو اختبار على جهاز فعلي.
+// ============================================================================
 
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_cleaner_app/services/cleaner_engine.dart';
 import 'package:flutter_cleaner_app/services/scan_item.dart';
 import 'package:flutter_cleaner_app/models/dashboard_state.dart';
@@ -24,7 +55,6 @@ import 'package:permission_handler/permission_handler.dart';
 import '../utils/colors.dart';
 import '../widgets/animated_button.dart';
 import '../widgets/progress_ring.dart';
-
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -45,11 +75,12 @@ class _HomeScreenState extends State<HomeScreen> {
   // الحالة الموحدة المستخدمة في عناصر الواجهة.
   DashboardState state = const DashboardState();
 
-  // نتائج الفحص الحالية، بما فيها اختيار المستخدم.
-  List<ScanItem> scanItems = [];
+  // نتائج الفحص الحالية، بما فيها اختيارات المستخدم.
+  // يجب أن تكون هذه القائمة قابلة للتعديل لأن نتائج المحرك غير قابلة للتعديل.
+  List<ScanItem> scanItems = <ScanItem>[];
 
   // سجل رسائل الفحص والتنظيف.
-  final List<Map<String, String>> logs = [];
+  final List<Map<String, String>> logs = <Map<String, String>>[];
 
   // هل اكتمل فحص حالي؟
   bool _hasScanned = false;
@@ -61,7 +92,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isStartingScan = false;
 
   // معلومات آخر عملية تنظيف.
-  // هذه القيم لا تعني أن الحجم المحدد قد تحرر بالكامل من الجهاز.
   int _lastDeletedFiles = 0;
   int _lastSelectedBytes = 0;
   bool _hasCleanupResult = false;
@@ -84,40 +114,30 @@ class _HomeScreenState extends State<HomeScreen> {
   // الصلاحيات
   // ---------------------------------------------------------------------------
 
-  /// يطلب صلاحية الوصول إلى الملفات المشتركة على Android.
-  ///
-  /// ملاحظة:
-  /// - صلاحية التخزين التقليدية لا تكفي للوصول إلى جميع المجلدات على Android
-  ///   الحديث.
-  /// - صلاحية الوصول إلى جميع الملفات تخضع لسياسات Google Play ومتطلبات Android.
-  /// - حتى بعد منحها، لا يستطيع التطبيق العادي الدخول إلى البيانات الخاصة
-  ///   للتطبيقات الأخرى أو حذفها.
+  /// طلب صلاحية الوصول إلى الملفات المشتركة على Android.
   Future<bool> _requestStorageAccess() async {
     try {
-      // محرك الفحص الحالي يعتمد على مسار تخزين Android.
       if (!Platform.isAndroid) {
         return false;
       }
 
-      // إذا كانت الصلاحية ممنوحة مسبقًا فلا حاجة إلى طلبها مجددًا.
-      final currentStatus =
+      final PermissionStatus currentStatus =
           await Permission.manageExternalStorage.status;
 
       if (currentStatus.isGranted) {
         return true;
       }
 
-      // في إصدارات Android الحديثة قد ينقل الطلب المستخدم إلى إعدادات النظام.
-      final requestedStatus =
+      final PermissionStatus requestedStatus =
           await Permission.manageExternalStorage.request();
 
-      if (requestedStatus.isGranted) {
-        return true;
-      }
-
+      return requestedStatus.isGranted;
+    } on PlatformException catch (error, stackTrace) {
+      debugPrint('Storage permission error: $error');
+      debugPrintStack(stackTrace: stackTrace);
       return false;
     } catch (error, stackTrace) {
-      debugPrint('Storage permission error: $error');
+      debugPrint('Unexpected storage permission error: $error');
       debugPrintStack(stackTrace: stackTrace);
       return false;
     }
@@ -149,7 +169,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // ---------------------------------------------------------------------------
 
   Future<void> startAnalysis() async {
-    // منع بدء فحص جديد أثناء الفحص أو الحذف.
     if (_isStartingScan || state.scanning || _isCleaning) {
       return;
     }
@@ -161,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     });
 
-    final hasPermission = await _requestStorageAccess();
+    final bool hasPermission = await _requestStorageAccess();
 
     if (!mounted) return;
 
@@ -180,11 +199,10 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    // نبدأ الفحص من حالة نظيفة.
     setState(() {
       _isStartingScan = false;
       _hasScanned = false;
-      scanItems = [];
+      scanItems = <ScanItem>[];
       logs.clear();
 
       state = state.copyWith(
@@ -200,12 +218,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _addLog('بدأ فحص الملفات المشتركة');
 
     try {
-      // استدعاء المحرك مباشرة بدل مراحل المحاكاة السابقة.
-      //
-      // onStatus: يعرض رسالة الحالة التي يرسلها المحرك.
-      // onProgress: يحدّث مؤشر التقدم حسب قيمة المحرك.
-      final results = await _engine.scan(
-        onStatus: (message) {
+      final List<ScanItem> results = await _engine.scan(
+        onStatus: (String message) {
           if (!mounted) return;
 
           _addLog(message);
@@ -216,10 +230,10 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           });
         },
-        onProgress: (progress) {
+        onProgress: (double progress) {
           if (!mounted) return;
 
-          final safeProgress =
+          final double safeProgress =
               progress.clamp(0.0, 1.0).toDouble();
 
           setState(() {
@@ -232,11 +246,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (!mounted) return;
 
-      final totalFiles = _engine.totalFiles;
-      final totalBytes = _engine.totalBytes;
+      // إصلاح مهم:
+      // قد يعيد CleanerEngine قائمة غير قابلة للتعديل.
+      // ننسخ النتائج حتى يمكن تحديث selected عند ضغط المستخدم.
+      final List<ScanItem> mutableResults =
+          List<ScanItem>.from(results);
+
+      final int totalFiles = mutableResults.fold<int>(
+        0,
+        (sum, item) => sum + item.files,
+      );
+
+      final int totalBytes = mutableResults.fold<int>(
+        0,
+        (sum, item) => sum + item.bytes,
+      );
 
       setState(() {
-        scanItems = results;
+        scanItems = mutableResults;
         _hasScanned = true;
 
         state = state.copyWith(
@@ -251,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       _addLog('اكتمل الفحص: $totalFiles ملف مرشح');
 
-      if (results.isEmpty || totalFiles == 0) {
+      if (mutableResults.isEmpty || totalFiles == 0) {
         _showMessage(
           'لم يعثر الفحص على ملفات مرشحة وفق قواعد المحرك الحالية.',
         );
@@ -268,6 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _hasScanned = false;
+        scanItems = <ScanItem>[];
 
         state = state.copyWith(
           scanning: false,
@@ -278,7 +306,9 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       _addLog('حدث خطأ أثناء الفحص');
-      _showMessage('تعذر إكمال الفحص. تحقق من الصلاحيات ثم أعد المحاولة.');
+      _showMessage(
+        'تعذر إكمال الفحص. تحقق من الصلاحيات ثم أعد المحاولة.',
+      );
     }
   }
 
@@ -287,38 +317,39 @@ class _HomeScreenState extends State<HomeScreen> {
   // ---------------------------------------------------------------------------
 
   Future<void> performCleaning() async {
-    // لا يسمح بالحذف إذا كانت هناك عملية أخرى جارية.
     if (state.scanning || _isStartingScan || _isCleaning) {
       return;
     }
 
-    // يجب وجود فحص مكتمل قبل السماح بالحذف.
     if (!_hasScanned || !state.analysisFinished) {
       _showMessage('ابدأ فحص الملفات أولًا.');
       return;
     }
 
-    // لا نرسل إلى المحرك إلا العناصر التي حددها المستخدم والتي يسمح المحرك
-    // بمعالجتها. اختيار المستخدم وحده لا يلغي التحقق الداخلي في المحرك.
-    final selectedItems = scanItems
+    final List<ScanItem> selectedItems = scanItems
         .where(
           (item) => item.selected && item.safeToDelete,
         )
         .toList();
 
     if (selectedItems.isEmpty) {
-      _showMessage('حدد عنصرًا واحدًا على الأقل من العناصر القابلة للمعالجة.');
+      _showMessage(
+        'حدد عنصرًا واحدًا على الأقل من العناصر القابلة للمعالجة.',
+      );
       return;
     }
 
-    // هذا مجموع الأحجام المسجلة للعناصر المحددة، وليس ضمانًا للمساحة
-    // التي ستتحرر فعلًا؛ فقد يتعذر حذف بعض الملفات أو تكون قد اختفت بالفعل.
-    final selectedBytes = selectedItems.fold<int>(
+    final int selectedBytes = selectedItems.fold<int>(
       0,
       (total, item) => total + item.bytes,
     );
 
-    final shouldClean = await showDialog<bool>(
+    final int selectedFileCount = selectedItems.fold<int>(
+      0,
+      (sum, item) => sum + item.files,
+    );
+
+    final bool? shouldClean = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
@@ -352,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           content: Text(
             'سيحاول التطبيق حذف الملفات الموجودة ضمن العناصر التي اخترتها.\n\n'
-            'عدد الملفات المرصودة: ${selectedItems.fold<int>(0, (sum, item) => sum + item.files)}\n'
+            'عدد الملفات المرصودة: $selectedFileCount\n'
             'الحجم التقديري: ${formatBytes(selectedBytes)}\n\n'
             'قد يتعذر حذف بعض الملفات. لا تتابع إذا لم تكن متأكدًا من العناصر المحددة.',
             style: const TextStyle(
@@ -415,11 +446,9 @@ class _HomeScreenState extends State<HomeScreen> {
     bool operationFailed = false;
 
     try {
-      // الحذف الفعلي يتم داخل CleanerEngine.
-      // لا نضيف خطوات زمنية وهمية تدّعي تنظيف الذاكرة أو تحسين أداء النظام.
       deletedCount = await _engine.clean(
         selected: selectedItems,
-        onStatus: (message) {
+        onStatus: (String message) {
           if (!mounted) return;
 
           _addLog(message);
@@ -444,12 +473,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted) return;
 
-    // لا نعلن أن الجهاز أصبح مثاليًا، ولا نرفع درجة صحة الجهاز تلقائيًا.
-    // نعرض فقط العدد الذي أعاده المحرك بوصفه عدد الملفات التي حذفها بنجاح.
     setState(() {
       _isCleaning = false;
       _hasScanned = false;
-      scanItems = [];
+      scanItems = <ScanItem>[];
 
       _lastDeletedFiles = deletedCount;
       _hasCleanupResult = true;
@@ -482,21 +509,21 @@ class _HomeScreenState extends State<HomeScreen> {
     _addLog(_lastCleanupMessage);
 
     if (operationFailed) {
-      _showMessage(
-        'حدث خطأ أثناء التنظيف. راجع سجل العملية.',
-      );
+      _showMessage('حدث خطأ أثناء التنظيف. راجع سجل العملية.');
     } else if (deletedCount > 0) {
       _showMessage(
-        'تم حذف $deletedCount ملف وفق نتيجة المحرك. يمكنك إعادة الفحص للتحقق مما تبقى.',
+        'أفاد المحرك بحذف $deletedCount ملف. '
+        'يمكنك إعادة الفحص للتحقق مما تبقى.',
       );
     } else {
       _showMessage(
-        'لم يتم تأكيد حذف أي ملفات. قد تكون الملفات غير متاحة أو تعذر حذفها.',
+        'لم يتم تأكيد حذف أي ملفات. '
+        'قد تكون الملفات غير متاحة أو تعذر حذفها.',
       );
     }
 
-    // لا نعيد الفحص تلقائيًا:
-    // هذا يترك للمستخدم فرصة مراجعة نتيجة التنظيف وبدء فحص جديد عند رغبته.
+    // لا نعيد الفحص تلقائيًا.
+    // يبدأ المستخدم فحصًا جديدًا عندما يرغب في ذلك.
   }
 
   // ---------------------------------------------------------------------------
@@ -529,23 +556,20 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
   }
 
-  /// يضيف رسالة إلى سجل العمليات مع تحديد حجمه حتى لا يتضخم بلا حدود.
+  /// إضافة رسالة إلى السجل مع تحديد حجمه حتى لا يتضخم بلا حدود.
   void _addLog(String message) {
-    final now = DateTime.now();
+    final DateTime now = DateTime.now();
 
-    final timeString =
+    final String timeString =
         '${now.hour.toString().padLeft(2, '0')}:'
         '${now.minute.toString().padLeft(2, '0')}:'
         '${now.second.toString().padLeft(2, '0')}';
 
-    logs.insert(0, {
+    logs.insert(0, <String, String>{
       'time': timeString,
-      'message': message.startsWith('[AI]')
-          ? message
-          : '[AI] $message',
+      'message': message.startsWith('[AI]') ? message : '[AI] $message',
     });
 
-    // الاحتفاظ بآخر 100 رسالة فقط.
     if (logs.length > 100) {
       logs.removeRange(100, logs.length);
     }
@@ -626,33 +650,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // إذا كانت عملية التنظيف الأخيرة هي المعروضة، نظهر نتائجها.
-    // أما بعد بدء فحص جديد، فنرجع إلى بيانات الفحص الحالي.
-    final showLastCleanup =
+    final bool showLastCleanup =
         !_hasScanned &&
         !_isCleaning &&
         !state.scanning &&
         _hasCleanupResult;
 
-    final displayedFiles = _hasScanned
-        ? _engine.totalFiles
+    final int displayedFiles = _hasScanned
+        ? state.totalFiles
         : showLastCleanup
             ? _lastDeletedFiles
             : 0;
 
-    final displayedBytes = _hasScanned
-        ? _engine.totalBytes
+    final int displayedBytes = _hasScanned
+        ? state.totalBytes
         : showLastCleanup
             ? _lastSelectedBytes
             : 0;
 
-    final filesLabel = _hasScanned
+    final String filesLabel = _hasScanned
         ? 'Files Found'
         : showLastCleanup
             ? 'Files Deleted'
             : 'Files Found';
 
-    final bytesLabel = _hasScanned
+    final String bytesLabel = _hasScanned
         ? 'Candidate Size'
         : showLastCleanup
             ? 'Selected Size'
@@ -661,8 +683,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppColors.background,
-
-      // القائمة الجانبية.
       drawer: Drawer(
         backgroundColor: const Color(0xFF090D1A),
         child: ListView(
@@ -749,16 +769,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-
-      // الشريط العلوي.
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(
-            Icons.menu,
-            color: Colors.white,
-          ),
+          icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: () {
             _scaffoldKey.currentState?.openDrawer();
           },
@@ -784,7 +799,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -792,8 +806,6 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 5),
-
-              // مؤشر تقدم العملية الحالية.
               ProgressRing(
                 progress: state.progress,
                 title: state.currentTask,
@@ -805,10 +817,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ? 'راجع العناصر قبل الحذف'
                             : 'جاهز لبدء الفحص',
               ),
-
               const SizedBox(height: 12),
-
-              // بطاقتا ملخص الفحص والحالة الحالية.
               Row(
                 children: [
                   Expanded(
@@ -820,10 +829,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
-              // إحصاءات الفحص أو آخر عملية تنظيف.
               Container(
                 padding: const EdgeInsets.symmetric(
                   vertical: 10,
@@ -875,13 +881,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 12),
-
-              // محتوى المساحة الرئيسية:
-              // 1. أثناء الحذف: عرض الحالة الفعلية.
-              // 2. بعد الفحص: عرض العناصر التي يستطيع المحرك التعامل معها.
-              // 3. قبل الفحص: عرض سجل الرسائل والأدوات.
               Expanded(
                 child: _isCleaning
                     ? Center(
@@ -951,10 +951,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           )
                         : _buildLogsAndTools(),
               ),
-
               const SizedBox(height: 12),
-
-              // الزر الرئيسي يتغير وفق حالة الفحص.
               AnimatedButton(
                 title: _isCleaning
                     ? 'DELETING SELECTED FILES...'
@@ -980,14 +977,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         ? performCleaning
                         : startAnalysis,
               ),
-
               const SizedBox(height: 8),
             ],
           ),
         ),
       ),
-
-      // شريط التنقل السفلي.
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF090D1A),
         type: BottomNavigationBarType.fixed,
@@ -1003,7 +997,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
           switch (index) {
             case 0:
-              // الشاشة الرئيسية الحالية.
               break;
 
             case 1:
@@ -1017,7 +1010,7 @@ class _HomeScreenState extends State<HomeScreen> {
             case 3:
               Navigator.push(
                 context,
-                MaterialPageRoute(
+                MaterialPageRoute<void>(
                   builder: (_) => const SettingsScreen(),
                 ),
               );
@@ -1078,8 +1071,7 @@ class _HomeScreenState extends State<HomeScreen> {
       description = 'Analyzing files...';
       textColor = const Color(0xFFFFD700);
     } else if (_hasScanned) {
-      // نعرض عدد الملفات المرصودة بدل اختراع درجة لصحة الجهاز.
-      mainText = '${_engine.totalFiles}';
+      mainText = '${state.totalFiles}';
       description = 'Candidate files';
       textColor = const Color(0xFF00F2FE);
 
@@ -1307,7 +1299,7 @@ class _HomeScreenState extends State<HomeScreen> {
               : ListView.builder(
                   itemCount: logs.length,
                   itemBuilder: (_, index) {
-                    final log = logs[index];
+                    final Map<String, String> log = logs[index];
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -1366,14 +1358,18 @@ class _HomeScreenState extends State<HomeScreen> {
               Icons.folder_open_outlined,
               'Large Files',
               () {
-                _showMessage('ميزة البحث عن الملفات الكبيرة قيد التطوير.');
+                _showMessage(
+                  'ميزة البحث عن الملفات الكبيرة قيد التطوير.',
+                );
               },
             ),
             _buildInteractiveTool(
               Icons.copy_all_outlined,
               'Duplicates',
               () {
-                _showMessage('ميزة البحث عن الملفات المكررة قيد التطوير.');
+                _showMessage(
+                  'ميزة البحث عن الملفات المكررة قيد التطوير.',
+                );
               },
             ),
             _buildInteractiveTool(
@@ -1382,7 +1378,7 @@ class _HomeScreenState extends State<HomeScreen> {
               () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
+                  MaterialPageRoute<void>(
                     builder: (_) => const SettingsScreen(),
                   ),
                 );
