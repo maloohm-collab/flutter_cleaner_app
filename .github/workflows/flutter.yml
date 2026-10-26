@@ -2,12 +2,27 @@ name: Flutter Build
 
 on:
   workflow_dispatch:
+    inputs:
+      confirm_build:
+        description: "Build APK only after explicit approval"
+        required: true
+        type: choice
+        options:
+          - "no"
+          - "yes"
+        default: "no"
 
 permissions:
   contents: read
 
+concurrency:
+  group: ai-optimizer-manual-apk-build
+  cancel-in-progress: false
+
 jobs:
   build:
+    # No build unless explicitly confirmed and the selected branch is main.
+    if: ${{ inputs.confirm_build == 'yes' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
