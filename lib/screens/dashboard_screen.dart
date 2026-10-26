@@ -55,8 +55,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             currentTask: message,
           );
         });
-      },
-    );
+    });
 
     // استدعاء الفحص مع إضافة حماية !mounted داخل الكولباكس الحية
     scanItems = await _engine.scan(
