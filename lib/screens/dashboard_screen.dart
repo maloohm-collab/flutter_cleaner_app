@@ -45,8 +45,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     });
 
-    await _pipeline.start(
-      onStage: (stage, p, message) async {
+    await _pipeline.start((stage, p, message) async {
         // [تم التصحيح] إضافة حماية لمنع الانهيار أثناء تحديث مراحل الأنبوب
         if (!mounted) return;
         
