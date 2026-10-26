@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "460765029290",
+    "project_id": "ai-optimizer-jordan",
+    "storage_bucket": "ai-optimizer-jordan.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:460765029290:android:129489bb499de5ae1dc1d3",
+        "android_client_info": {
+          "package_name": "com.example.flutter_cleaner_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyADeznpLXLQXHCzX0BqR2Loorlm4l4QfBA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
