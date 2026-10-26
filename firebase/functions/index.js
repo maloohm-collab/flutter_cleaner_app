@@ -36,7 +36,7 @@ exports.redeemActivationCode = onCall(async (request) => {
     new Date(nowMs + 30 * 24 * 60 * 60 * 1000)
   );
 
-  await db.runTransaction(async (tx) => {
+  const redeemed = await db.runTransaction(async (tx) => {
     const attemptSnap = await tx.get(attemptRef);
     const attemptData = attemptSnap.exists ? attemptSnap.data() : {};
     const windowStart = Number(attemptData.windowStartMs || 0);
@@ -58,7 +58,7 @@ exports.redeemActivationCode = onCall(async (request) => {
         windowStartMs: count === 0 ? nowMs : windowStart,
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
-      throw new HttpsError("failed-precondition", "Code is invalid or already used.");
+      return false;
     }
 
     const now = admin.firestore.Timestamp.now();
@@ -76,7 +76,16 @@ exports.redeemActivationCode = onCall(async (request) => {
       source: "manual_whatsapp_payment"
     });
     tx.delete(attemptRef);
+    return true;
   });
+
+  if (!redeemed) {
+    const latestAttempt = await attemptRef.get();
+    if (latestAttempt.exists && Number(latestAttempt.data().count || 0) >= 10) {
+      throw new HttpsError("resource-exhausted", "Too many attempts. Please try again in one hour.");
+    }
+    throw new HttpsError("failed-precondition", "Code is invalid or already used.");
+  }
 
   return { success: true, expiresAt: expiresAt.toDate().toISOString() };
 });
