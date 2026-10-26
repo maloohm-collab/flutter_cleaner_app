@@ -1,10 +1,12 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'screens/activation_screen.dart';
 import 'utils/colors.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const CleanerApp());
 }
 
@@ -16,24 +18,20 @@ class CleanerApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'AI Optimizer',
-
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: AppColors.background,
         primaryColor: AppColors.primary,
         fontFamily: 'Roboto',
-
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
           brightness: Brightness.dark,
         ),
-
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
         ),
-
         snackBarTheme: SnackBarThemeData(
           backgroundColor: AppColors.card,
           behavior: SnackBarBehavior.floating,
@@ -42,7 +40,6 @@ class CleanerApp extends StatelessWidget {
           ),
         ),
       ),
-
       home: const ActivationScreen(),
     );
   }
