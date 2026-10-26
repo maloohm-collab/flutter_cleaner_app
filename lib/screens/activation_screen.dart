@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../utils/colors.dart';
 import '../widgets/animated_button.dart';
@@ -14,177 +15,154 @@ class ActivationScreen extends StatefulWidget {
 }
 
 class _ActivationScreenState extends State<ActivationScreen> {
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _codeController = TextEditingController();
 
   @override
   void dispose() {
-    _controller.dispose();
+    _phoneController.dispose();
+    _codeController.dispose();
     super.dispose();
   }
 
-  void _login() {
-    if (_controller.text.trim() == "Maloohm123") {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const HomeScreen(),
-        ),
-      );
-    } else {
+  Future<void> _contactWhatsApp() async {
+    final phone = _normalizePhone(_phoneController.text);
+    final message = phone.isEmpty
+        ? 'مرحباً، أريد طلب كود تفعيل AI Optimizer لمدة شهر مقابل 2 دينار.'
+        : 'مرحباً، أريد طلب كود تفعيل AI Optimizer لمدة شهر مقابل 2 دينار. رقم هاتفي: $phone';
+    final uri = Uri.parse(
+      'https://wa.me/962780494789?text=${Uri.encodeComponent(message)}',
+    );
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Invalid Activation Key"),
-        ),
+        const SnackBar(content: Text('تعذر فتح واتساب. تأكد من تثبيته أو افتح الرقم 0780494789 يدوياً.')),
       );
     }
+  }
+
+  String _normalizePhone(String value) {
+    var phone = value.replaceAll(RegExp(r'[^0-9+]'), '');
+    if (phone.startsWith('+')) phone = phone.substring(1);
+    if (phone.startsWith('00')) phone = phone.substring(2);
+    if (phone.startsWith('0')) phone = '962${phone.substring(1)}';
+    return phone;
+  }
+
+  void _activate() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('خدمة التحقق غير مهيأة بعد. اربط Firebase وأضف خدمة التحقق الآمنة قبل تفعيل الاشتراكات.'),
+        duration: Duration(seconds: 5),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.primaryGradient,
-        ),
+        decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
         child: Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.78),
-          ),
+          decoration: BoxDecoration(color: Colors.black.withOpacity(0.78)),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Center(
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
                       const SizedBox(height: 20),
-                      const GlowLogo(size: 120)
-                          .animate()
-                          .fade(duration: 700.ms)
-                          .slideY(begin: -0.4),
-
-                      const SizedBox(height: 25),
-
+                      const GlowLogo(size: 108).animate().fade(duration: 600.ms).slideY(begin: -.2),
+                      const SizedBox(height: 22),
                       const Text(
-                        "AI SYSTEM ACCESS",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                        ),
-                      )
-                          .animate()
-                          .fade(delay: 200.ms),
-
+                        'AI OPTIMIZER',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+                      ),
                       const SizedBox(height: 8),
-
                       const Text(
-                        "Smart Cleaner & Optimizer",
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 15,
-                        ),
-                      )
-                          .animate()
-                          .fade(delay: 350.ms),
-
-                      const SizedBox(height: 35),
-
-                      const Text(
-                        "Welcome Back!",
-                        style: TextStyle(
-                          color: Color(0xFF4FACFE),
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ).animate().fade(delay: 400.ms),
-                      
-                      const SizedBox(height: 6),
-                      
-                      const Text(
-                        "Enter your access key to continue",
-                        style: TextStyle(
-                          color: Colors.white60,
-                          fontSize: 14,
-                        ),
-                      ).animate().fade(delay: 420.ms),
-
-                      const SizedBox(height: 30),
-
+                        'تنظيف ذكي وآمن لمساحة هاتفك',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white70, fontSize: 15),
+                      ),
+                      const SizedBox(height: 28),
                       TextField(
-                        controller: _controller,
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
-                          hintText: "Activation Key",
-                          hintStyle: const TextStyle(color: Colors.white54),
-                          prefixIcon: const Icon(
-                            Icons.vpn_key_rounded,
-                            color: AppColors.primary,
-                          ),
+                          labelText: 'رقم الهاتف المرتبط بالاشتراك',
+                          hintText: '07XXXXXXXX',
+                          prefixIcon: const Icon(Icons.phone_android, color: AppColors.primary),
                           filled: true,
                           fillColor: AppColors.field,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(18),
-                            borderSide: BorderSide.none,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: _codeController,
+                        textCapitalization: TextCapitalization.characters,
+                        autocorrect: false,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'كود التفعيل',
+                          hintText: 'أدخل الكود الذي استلمته',
+                          prefixIcon: const Icon(Icons.key_rounded, color: AppColors.primary),
+                          filled: true,
+                          fillColor: AppColors.field,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      AnimatedButton(
+                        title: 'تحقق من التفعيل',
+                        icon: Icons.verified_user_outlined,
+                        onPressed: _activate,
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _contactWhatsApp,
+                          icon: const Icon(Icons.chat, color: Color(0xFF25D366)),
+                          label: const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            child: Text('طلب كود التفعيل عبر واتساب — 2 دينار'),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Color(0xFF25D366)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
                         ),
-                      )
-                          .animate()
-                          .fade(delay: 450.ms)
-                          .slideX(begin: -.3),
-
-                      const SizedBox(height: 25),
-
-                      AnimatedButton(
-                        title: "INITIALIZE SYSTEM",
-                        icon: Icons.arrow_forward,
-                        onPressed: _login,
-                      )
-                          .animate()
-                          .fade(delay: 600.ms)
-                          .scale(),
-
-                      const SizedBox(height: 40),
-
-                      // -- القسم الجديد: القيمة المضافة للتطبيق --
+                      ),
+                      const SizedBox(height: 20),
                       Container(
-                        padding: const EdgeInsets.all(20),
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.04),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: Colors.white.withOpacity(0.08)),
+                          color: Colors.white.withOpacity(.05),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: Colors.white12),
                         ),
-                        child: Column(
+                        child: const Column(
                           children: [
-                            _buildFeatureRow(Icons.auto_awesome, "AI Deep Scan", "Identify junk files with precision"),
-                            const Divider(color: Colors.white10, height: 25),
-                            _buildFeatureRow(Icons.speed, "Performance Boost", "Optimize system memory instantly"),
-                            const Divider(color: Colors.white10, height: 25),
-                            _buildFeatureRow(Icons.security, "Privacy Shield", "Keep your data secure & private"),
+                            _FeatureRow(icon: Icons.cleaning_services_outlined, title: 'تنظيف الملفات غير الضرورية', subtitle: 'مع مراجعة النتائج قبل الحذف'),
+                            Divider(color: Colors.white12, height: 22),
+                            _FeatureRow(icon: Icons.phone_android, title: 'اشتراك مرتبط برقمك', subtitle: 'كود واحد لمدة شهر بعد تأكيد الدفع'),
+                            Divider(color: Colors.white12, height: 22),
+                            _FeatureRow(icon: Icons.lock_outline, title: 'تفعيل آمن', subtitle: 'سيتم تفعيل التحقق بعد إعداد الخادم'),
                           ],
                         ),
-                      ).animate().fade(delay: 700.ms).slideY(begin: 0.15),
-                      // ----------------------------------------
-
-                      const SizedBox(height: 35),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.shield_outlined, color: Colors.white38, size: 15),
-                          SizedBox(width: 6),
-                          Text(
-                            "v1.0.0  •  Secure & Private",
-                            style: TextStyle(
-                              color: Colors.white38,
-                              fontSize: 12,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ],
                       ),
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'الدفع يتم يدوياً بعد التواصل عبر واتساب. لا ترسل بيانات محفظتك السرية أو كلمة مرورك.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white54, fontSize: 11),
+                      ),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -195,19 +173,28 @@ class _ActivationScreenState extends State<ActivationScreen> {
       ),
     );
   }
+}
 
-  // ويدجت لعرض الميزات بشكل أنيق
-  Widget _buildFeatureRow(IconData icon, String title, String subtitle) {
+class _FeatureRow extends StatelessWidget {
+  const _FeatureRow({required this.icon, required this.title, required this.subtitle});
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: const Color(0xFF00F2FE), size: 24),
-        const SizedBox(width: 15),
+        Icon(icon, color: const Color(0xFF00F2FE), size: 23),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-              Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 3),
+              Text(subtitle, style: const TextStyle(color: Colors.white60, fontSize: 11)),
             ],
           ),
         ),
