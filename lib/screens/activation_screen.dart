@@ -1,6 +1,4 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -17,32 +15,23 @@ class ActivationScreen extends StatefulWidget {
 }
 
 class _ActivationScreenState extends State<ActivationScreen> {
-  final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
   bool _isActivating = false;
 
+  static const String _activationCode = 'AICLEANER0000';
+  static const int _subscriptionDays = 30;
+  static const String _whatsAppNumber = '962780494789';
+
   @override
   void dispose() {
-    _phoneController.dispose();
     _codeController.dispose();
     super.dispose();
   }
 
-  String _normalizePhone(String value) {
-    var phone = value.replaceAll(RegExp(r'[^0-9+]'), '');
-    if (phone.startsWith('+')) phone = phone.substring(1);
-    if (phone.startsWith('00')) phone = phone.substring(2);
-    if (phone.startsWith('0')) phone = '962${phone.substring(1)}';
-    return phone;
-  }
-
   Future<void> _contactWhatsApp() async {
-    final phone = _normalizePhone(_phoneController.text);
-    final message = phone.isEmpty
-        ? 'مرحباً، أريد طلب كود تفعيل AI Optimizer لمدة شهر مقابل 2 دينار.'
-        : 'مرحباً، أريد طلب كود تفعيل AI Optimizer لمدة شهر مقابل 2 دينار. رقم هاتفي: $phone';
+    final message = 'مرحباً، أريد الاشتراك في AI Optimizer لمدة شهر مقابل 2 دينار أردني.';
     final uri = Uri.parse(
-      'https://wa.me/962780494789?text=${Uri.encodeComponent(message)}',
+      'https://wa.me/$_whatsAppNumber?text=${Uri.encodeComponent(message)}',
     );
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication) && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -53,61 +42,34 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
   Future<void> _activate() async {
     if (_isActivating) return;
-    final phone = _normalizePhone(_phoneController.text);
-    final code = _codeController.text.trim().toUpperCase();
-
-    if (!RegExp(r'^9627[789][0-9]{7}$').hasMatch(phone)) {
+    if (_codeController.text.trim().toUpperCase() != _activationCode) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أدخل رقم هاتف أردني صحيحًا مثل 079XXXXXXX.')),
-      );
-      return;
-    }
-    if (!RegExp(r'^[A-F0-9]{12}$').hasMatch(code)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أدخل كود التفعيل الصحيح المكوّن من 12 خانة.')),
+        const SnackBar(content: Text('رمز التفعيل غير صحيح.')),
       );
       return;
     }
 
     setState(() => _isActivating = true);
     try {
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('redeemActivationCode')
-          .call<Map<String, dynamic>>({'phone': phone, 'code': code});
-      final data = result.data;
-      if (data['success'] != true) {
-        throw Exception('Activation was not confirmed by the server.');
-      }
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('subscription_phone', phone);
+      final now = DateTime.now();
+      final expiry = now.add(const Duration(days: _subscriptionDays));
+      await prefs.setInt('subscription_activated_at_ms', now.millisecondsSinceEpoch);
+      await prefs.setInt('subscription_expiry_ms', expiry.millisecondsSinceEpoch);
+
       if (!mounted) return;
-      final expiry = data['expiresAt'] is String
-          ? DateTime.tryParse(data['expiresAt'] as String)
-          : null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(expiry == null
-              ? 'تم تفعيل الاشتراك بنجاح.'
-              : 'تم التفعيل بنجاح حتى ${expiry.day}/${expiry.month}/${expiry.year}.'),
+          content: Text('تم التفعيل بنجاح لمدة 30 يومًا، حتى ${expiry.day}/${expiry.month}/${expiry.year}.'),
         ),
       );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
-    } on FirebaseFunctionsException catch (e) {
-      if (!mounted) return;
-      final message = e.code == 'invalid-argument'
-          ? 'رقم الهاتف أو كود التفعيل غير صحيح.'
-          : e.code == 'failed-precondition'
-              ? 'الكود غير صالح أو سبق استخدامه.'
-              : e.code == 'permission-denied'
-                  ? 'ليس لديك صلاحية لتنفيذ الطلب.'
-                  : 'تعذّر التفعيل الآن. تحقق من إعدادات Firebase والإنترنت.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('حدث خطأ أثناء التفعيل. حاول مرة أخرى.')),
+        const SnackBar(content: Text('تعذر حفظ التفعيل. حاول مرة أخرى.')),
       );
     } finally {
       if (mounted) setState(() => _isActivating = false);
@@ -128,10 +90,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                     child: Column(
                       children: [
                         const SizedBox(height: 20),
-                        const GlowLogo(size: 108)
-                            .animate()
-                            .fade(duration: 600.ms)
-                            .slideY(begin: -.2),
+                        const GlowLogo(size: 108),
                         const SizedBox(height: 22),
                         const Text(
                           'AI OPTIMIZER',
@@ -147,33 +106,23 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         const Text(
                           'تنظيف ذكي وآمن لمساحة هاتفك',
                           style: TextStyle(color: Colors.white70, fontSize: 15),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'اشتراك لمدة 30 يومًا مقابل 2 دينار أردني',
+                          style: TextStyle(color: Color(0xFF00F2FE), fontSize: 14),
+                          textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 28),
-                        TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'رقم الهاتف المرتبط بالاشتراك',
-                            hintText: '07XXXXXXXX',
-                            prefixIcon: const Icon(Icons.phone_android, color: AppColors.primary),
-                            filled: true,
-                            fillColor: AppColors.field,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
                         TextField(
                           controller: _codeController,
                           textCapitalization: TextCapitalization.characters,
                           autocorrect: false,
                           style: const TextStyle(color: Colors.white),
                           decoration: InputDecoration(
-                            labelText: 'كود التفعيل',
-                            hintText: 'أدخل الكود الذي استلمته',
+                            labelText: 'رمز التفعيل',
+                            hintText: 'أدخل رمز التفعيل',
                             prefixIcon: const Icon(Icons.key_rounded, color: AppColors.primary),
                             filled: true,
                             fillColor: AppColors.field,
@@ -185,7 +134,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         ),
                         const SizedBox(height: 18),
                         AnimatedButton(
-                          title: _isActivating ? 'جارٍ التحقق...' : 'تحقق من التفعيل',
+                          title: _isActivating ? 'جارٍ التفعيل...' : 'تفعيل التطبيق',
                           icon: Icons.verified_user_outlined,
                           onPressed: _isActivating ? null : _activate,
                         ),
@@ -197,7 +146,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                             icon: const Icon(Icons.chat, color: Color(0xFF25D366)),
                             label: const Padding(
                               padding: EdgeInsets.symmetric(vertical: 14),
-                              child: Text('طلب كود التفعيل عبر واتساب — 2 دينار'),
+                              child: Text('الاشتراك عبر واتساب — 2 دينار'),
                             ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
@@ -209,41 +158,10 @@ class _ActivationScreenState extends State<ActivationScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(.05),
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: Colors.white12),
-                          ),
-                          child: const Column(
-                            children: [
-                              _FeatureRow(
-                                icon: Icons.cleaning_services_outlined,
-                                title: 'تنظيف الملفات غير الضرورية',
-                                subtitle: 'مع مراجعة النتائج قبل الحذف',
-                              ),
-                              Divider(color: Colors.white12, height: 22),
-                              _FeatureRow(
-                                icon: Icons.phone_android,
-                                title: 'اشتراك مرتبط برقمك',
-                                subtitle: 'كود واحد لمدة شهر بعد تأكيد الدفع',
-                              ),
-                              Divider(color: Colors.white12, height: 22),
-                              _FeatureRow(
-                                icon: Icons.lock_outline,
-                                title: 'تفعيل آمن',
-                                subtitle: 'التحقق من الاشتراك عبر الخادم',
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
                         const Text(
-                          'الدفع يتم يدوياً بعد التواصل عبر واتساب. لا ترسل بيانات محفظتك السرية أو كلمة مرورك.',
+                          'بعد تأكيد الدفع، أدخل رمز التفعيل للبدء. مدة التفعيل 30 يومًا على هذا الجهاز.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white54, fontSize: 11),
+                          style: TextStyle(color: Colors.white54, fontSize: 12),
                         ),
                         const SizedBox(height: 16),
                       ],
@@ -254,45 +172,5 @@ class _ActivationScreenState extends State<ActivationScreen> {
             ),
           ),
         ),
-      );
-}
-
-class _FeatureRow extends StatelessWidget {
-  const _FeatureRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) => Row(
-        children: [
-          Icon(icon, color: const Color(0xFF00F2FE), size: 23),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Colors.white60, fontSize: 11),
-                ),
-              ],
-            ),
-          ),
-        ],
       );
 }
