@@ -33,6 +33,8 @@
 
 import 'dart:io';
 
+import 'package:flutter/services.dart' show PlatformException;
+
 import 'package:permission_handler/permission_handler.dart';
 
 /// خدمة مساعدة لفحص ملفات التخزين المشتركة.
