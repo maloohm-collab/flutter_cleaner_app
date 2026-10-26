@@ -1,0 +1,71 @@
+name: Firebase Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_functions:
+        description: "Deploy Cloud Functions"
+        required: true
+        type: choice
+        options:
+          - "no"
+          - "yes"
+        default: "no"
+      deploy_rules:
+        description: "Deploy Firestore rules"
+        required: true
+        type: choice
+        options:
+          - "no"
+          - "yes"
+        default: "no"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-optimizer-firebase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ github.ref == 'refs/heads/main' && (inputs.deploy_functions == 'yes' || inputs.deploy_rules == 'yes') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Firebase CLI
+        run: npm install --global firebase-tools
+
+      - name: Configure Firebase service account
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error::GitHub Actions secret FIREBASE_SERVICE_ACCOUNT_JSON is missing."
+            exit 1
+          fi
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-service-account.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/firebase-service-account.json" >> "$GITHUB_ENV"
+
+      - name: Install function dependencies
+        if: ${{ inputs.deploy_functions == 'yes' }}
+        working-directory: firebase/functions
+        run: npm ci
+
+      - name: Deploy Cloud Functions
+        if: ${{ inputs.deploy_functions == 'yes' }}
+        run: firebase deploy --only functions --project ai-optimizer-jordan --non-interactive
+
+      - name: Deploy Firestore rules
+        if: ${{ inputs.deploy_rules == 'yes' }}
+        run: firebase deploy --only firestore:rules --project ai-optimizer-jordan --non-interactive
+
+      - name: Remove temporary credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-service-account.json"
