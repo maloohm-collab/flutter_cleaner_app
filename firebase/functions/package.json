@@ -3,6 +3,12 @@
   "private": true,
   "engines": { "node": "20" },
   "main": "index.js",
-  "scripts": { "deploy": "firebase deploy --only functions" },
-  "dependencies": { "firebase-admin": "^13.0.2", "firebase-functions": "^6.1.1" }
+  "scripts": {
+    "deploy": "firebase deploy --only functions",
+    "generate-code": "node generate-code.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.1.1"
+  }
 }
