@@ -15,13 +15,13 @@ function normalizePhone(input) {
 }
 function hash(value){return crypto.createHash("sha256").update(value).digest("hex");}
 function makeCode(){return crypto.randomBytes(6).toString("hex").toUpperCase();}
-exports.createActivationCode=onCall({secrets:[ADMIN_SECRET],enforceAppCheck:true},async(request)=>{
+exports.createActivationCode=onCall({secrets:[ADMIN_SECRET]},async(request)=>{
  if(request.data?.adminSecret!==ADMIN_SECRET.value()) throw new HttpsError("permission-denied","Not authorized.");
  const code=makeCode(), codeHash=hash(code);
  await db.collection("activationCodes").doc(codeHash).create({status:"unused",createdAt:admin.firestore.FieldValue.serverTimestamp()});
  return {code};
 });
-exports.redeemActivationCode=onCall({enforceAppCheck:true},async(request)=>{
+exports.redeemActivationCode=onCall(async(request)=>{
  const phone=normalizePhone(request.data?.phone), code=String(request.data?.code||"").trim().toUpperCase();
  if(!/^[A-F0-9]{12}$/.test(code)) throw new HttpsError("invalid-argument","Invalid activation code.");
  const codeRef=db.collection("activationCodes").doc(hash(code));
