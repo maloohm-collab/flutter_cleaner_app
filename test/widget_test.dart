@@ -1,22 +1,20 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_cleaner_app/main.dart';
 
 void main() {
-  testWidgets('AI Optimizer activation screen shows phone and code fields',
+  testWidgets('AI Optimizer activation screen shows code field and WhatsApp option',
       (WidgetTester tester) async {
-    // Firebase is initialized by the Android runtime; widget tests should
-    // verify the UI independently of native Firebase services.
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(const CleanerApp());
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('AI OPTIMIZER'), findsOneWidget);
-    expect(find.text('رقم الهاتف المرتبط بالاشتراك'), findsOneWidget);
-    expect(find.text('كود التفعيل'), findsOneWidget);
-    expect(find.text('طلب كود التفعيل عبر واتساب — 2 دينار'), findsOneWidget);
+    expect(find.text('رمز التفعيل'), findsOneWidget);
+    expect(find.text('الاشتراك عبر واتساب — 2 دينار'), findsOneWidget);
   });
 }
