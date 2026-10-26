@@ -1,5 +1,3 @@
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,7 +7,6 @@ import 'utils/colors.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
   runApp(const CleanerApp());
 }
 
@@ -56,30 +53,25 @@ class StartupGate extends StatefulWidget {
 }
 
 class _StartupGateState extends State<StartupGate> {
-  late final Future<bool> _subscriptionCheck = _checkSubscription();
+  late final Future<bool> _activationCheck = _checkActivation();
 
-  Future<bool> _checkSubscription() async {
+  Future<bool> _checkActivation() async {
     final prefs = await SharedPreferences.getInstance();
-    final phone = prefs.getString('subscription_phone');
-    if (phone == null || phone.isEmpty) return false;
+    final expiryMs = prefs.getInt('subscription_expiry_ms');
+    if (expiryMs == null) return false;
 
-    try {
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('checkSubscription')
-          .call<Map<String, dynamic>>({'phone': phone});
-      final active = result.data['active'] == true;
-      if (!active) await prefs.remove('subscription_phone');
-      return active;
-    } catch (_) {
-      // If the server cannot be reached, do not grant access offline.
+    if (DateTime.now().millisecondsSinceEpoch >= expiryMs) {
+      await prefs.remove('subscription_expiry_ms');
+      await prefs.remove('subscription_activated_at_ms');
       return false;
     }
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
-      future: _subscriptionCheck,
+      future: _activationCheck,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
