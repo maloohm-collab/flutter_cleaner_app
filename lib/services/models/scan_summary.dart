@@ -1,4 +1,4 @@
-import 'scan_item.dart';
+import '../scan_item.dart';
 
 class ScanSummary {
   final List<ScanItem> items;
