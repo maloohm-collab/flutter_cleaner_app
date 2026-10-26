@@ -36,7 +36,7 @@ exports.redeemActivationCode=onCall(async(request)=>{
  });
  return {success:true,expiresAt:expiresAt.toDate().toISOString()};
 });
-exports.checkSubscription=onCall({enforceAppCheck:true},async(request)=>{
+exports.checkSubscription=onCall(async(request)=>{
  const phoneHash=hash(normalizePhone(request.data?.phone));
  const snap=await db.collection("subscriptions").doc(phoneHash).get();
  if(!snap.exists)return {active:false};
