@@ -189,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFFF4F7FB),
+      backgroundColor: const Color(0xFF10172A),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -1566,7 +1566,7 @@ class CategoryDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FB),
+      backgroundColor: const Color(0xFF10172A),
       appBar: AppBar(
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF172A45),
