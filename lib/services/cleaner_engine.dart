@@ -444,8 +444,13 @@ class CleanerEngine {
     final List<String> segments = lowerPath.split('/');
 
     return segments.any(
-      (String segment) => segment == '.thumbnails',
-    );
+      (String segment) =>
+          segment == '.thumbnails' ||
+          segment == 'thumbnails' ||
+          segment == 'thumbs' ||
+          segment.contains('thumbnail'),
+    ) || lowerPath.split('/').last.contains('thumbnail') ||
+        lowerPath.split('/').last.contains('thumb_');
   }
 
   /// يوحد فواصل المسارات ويزيل الفواصل المكررة.
