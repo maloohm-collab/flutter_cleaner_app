@@ -102,8 +102,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _loadingSubscription
                         ? 'جارٍ التحقق...'
                         : active
-                            ? 'مفعّل حتى ${_formatDate(_expiry!)}'
-                            : 'لا يوجد اشتراك مفعّل على هذا الجهاز',
+                            ? 'تفعيل محلي حتى ${_formatDate(_expiry!)} — لا يوجد تحقق دفع عبر الإنترنت'
+                            : 'لا يوجد تفعيل محلي على هذا الجهاز',
                     style: TextStyle(color: active ? AppColors.success : AppColors.warning, height: 1.5),
                   ),
                 ),
