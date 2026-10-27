@@ -77,7 +77,9 @@ class ScanResultCard extends StatelessWidget {
           ),
         ),
         subtitle: Text(
-          '${item.files} files\n${item.readableSize}',
+          item.safeToDelete
+              ? '${item.files} files\\n${item.readableSize}\\nراجع الملفات قبل الحذف.'
+              : '${item.files} files\\n${item.readableSize}\\nللعرض فقط حاليًا — لا يُسمح بحذف هذه الفئة تلقائيًا.',
         ),
         controlAffinity: ListTileControlAffinity.trailing,
         contentPadding: const EdgeInsets.symmetric(
