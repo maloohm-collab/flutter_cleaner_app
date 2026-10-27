@@ -44,7 +44,6 @@ class CleanerEngine {
   static const List<String> junkExtensions = <String>[
     '.tmp',
     '.temp',
-    '.trash',
   ];
 
   /// جذر التخزين المشترك على أجهزة Android.
@@ -260,6 +259,7 @@ class CleanerEngine {
       descriptionPath: 'category://thumbnail_files',
       files: groupedFiles['thumbnail_files']!,
       bytes: groupedBytes['thumbnail_files']!,
+      safeToDelete: false,
     );
 
     onProgress?.call(1.0);
@@ -374,12 +374,6 @@ class CleanerEngine {
 
     final List<String> segments = lowerPath.split('/');
 
-    if (segments.any(
-      (String segment) => segment == 'temp' || segment == 'tmp',
-    )) {
-      return 'temporary_files';
-    }
-
     return null;
   }
 
@@ -390,6 +384,7 @@ class CleanerEngine {
     required String descriptionPath,
     required List<File> files,
     required int bytes,
+    bool safeToDelete = true,
   }) {
     if (files.isEmpty) {
       return;
@@ -406,7 +401,7 @@ class CleanerEngine {
         bytes: bytes,
         // تعني أن الفئة مسموح بعرضها للاختيار،
         // ولا تعني أن كل ملف فيها مضمون الأمان للحذف.
-        safeToDelete: true,
+        safeToDelete: safeToDelete,
         selected: false,
       ),
     );
