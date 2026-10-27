@@ -855,6 +855,39 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+              if (_hasScanned) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10172A),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'STORAGE INVENTORY • ACCESSIBLE FILES',
+                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(child: _buildStatColumn('${_engine.imageFiles}', 'Photos • ${formatBytes(_engine.imageBytes)}', const Color(0xFF64B5F6))),
+                          Expanded(child: _buildStatColumn('${_engine.videoFiles}', 'Videos • ${formatBytes(_engine.videoBytes)}', const Color(0xFFFFB74D))),
+                          Expanded(child: _buildStatColumn('${_engine.otherFiles}', 'Other files • ${formatBytes(_engine.otherBytes)}', Colors.white70)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Inventory is limited to files Android allowed the app to read; it is not the phone’s complete storage meter.',
+                        style: TextStyle(color: Colors.white60, fontSize: 10, height: 1.35),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               Expanded(
                 child: _isCleaning
