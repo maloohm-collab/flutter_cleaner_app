@@ -204,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             return FutureBuilder<int>(
                               future: file.length(),
                               builder: (context, snapshot) {
-                                final size = snapshot.hasData ? formatBytes(snapshot.data!) : 'جارٍ حساب الحجم...';
+                                final size = snapshot.hasError ? 'غير متاح' : snapshot.hasData ? formatBytes(snapshot.data!) : 'جارٍ حساب الحجم...';
                                 return ListTile(
                                   contentPadding: EdgeInsets.zero,
                                   leading: const Icon(Icons.insert_drive_file_outlined, color: Color(0xFF00F2FE)),
