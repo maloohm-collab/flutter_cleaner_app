@@ -164,6 +164,61 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showLargestFiles() {
+    final files = _engine.largestAccessibleFiles;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF10172A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.of(sheetContext).size.height * 0.75,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('أكبر الملفات التي أمكن قراءتها',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                const Text('قائمة للعرض فقط. لا يتم حذف الصور أو الفيديوهات من هذه الشاشة.',
+                  style: TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: files.isEmpty
+                    ? const Center(child: Text('أعد الفحص أولًا لعرض الملفات.', style: TextStyle(color: Colors.white70)))
+                    : ListView.separated(
+                        itemCount: files.length,
+                        separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
+                        itemBuilder: (_, index) {
+                          final entry = files[index];
+                          final segments = entry.key.split('/');
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.insert_drive_file_outlined, color: Color(0xFF00F2FE)),
+                            title: Text(segments.isEmpty ? entry.key : segments.last,
+                              style: const TextStyle(color: Colors.white, fontSize: 13),
+                              maxLines: 2, overflow: TextOverflow.ellipsis),
+                            subtitle: Text(entry.key,
+                              style: const TextStyle(color: Colors.white54, fontSize: 10),
+                              maxLines: 2, overflow: TextOverflow.ellipsis),
+                            trailing: Text(formatBytes(entry.value),
+                              style: const TextStyle(color: Color(0xFFFFB74D), fontSize: 11)),
+                          );
+                        },
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// يعرض الملفات التي اكتشفها المحرك فعلًا ضمن الفئة المختارة.
   Future<void> _showCategoryDetails(ScanItem item) async {
     final List<File> files = _engine.filesForCategory(item.id);
@@ -883,6 +938,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       const Text(
                         'Inventory is limited to files Android allowed the app to read; it is not the phone’s complete storage meter.',
                         style: TextStyle(color: Colors.white60, fontSize: 10, height: 1.35),
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: _showLargestFiles,
+                          icon: const Icon(Icons.storage_rounded, size: 16),
+                          label: const Text('View largest files'),
+                          style: TextButton.styleFrom(foregroundColor: const Color(0xFF00F2FE)),
+                        ),
                       ),
                     ],
                   ),
