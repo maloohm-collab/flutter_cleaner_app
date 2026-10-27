@@ -12,8 +12,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool animations = true;
-  bool vibration = true;
   bool _loadingSubscription = true;
   DateTime? _expiry;
 
@@ -116,30 +114,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: const Text('إنهاء التفعيل المحلي على هذا الجهاز', style: TextStyle(color: AppColors.textSecondary)),
                   trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
                   onTap: _logout,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          _sectionTitle('تفضيلات التطبيق'),
-          const SizedBox(height: 10),
-          _panel(
-            child: Column(
-              children: [
-                SwitchListTile(
-                  value: animations,
-                  onChanged: (value) => setState(() => animations = value),
-                  activeTrackColor: AppColors.primary,
-                  title: const Text('المؤثرات الحركية', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('تفضيل بصري لهذه الجلسة فقط', style: TextStyle(color: AppColors.textSecondary)),
-                ),
-                const Divider(color: AppColors.border, height: 1),
-                SwitchListTile(
-                  value: vibration,
-                  onChanged: (value) => setState(() => vibration = value),
-                  activeTrackColor: AppColors.primary,
-                  title: const Text('الاهتزاز', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                  subtitle: const Text('الإعداد لا يفعّل الاهتزاز حاليًا؛ سيبقى تفضيلًا شكليًا حتى ربطه بوظيفة فعلية.', style: TextStyle(color: AppColors.textSecondary, height: 1.4)),
                 ),
               ],
             ),
