@@ -164,6 +164,71 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// يعرض الملفات التي اكتشفها المحرك فعلًا ضمن الفئة المختارة.
+  Future<void> _showCategoryDetails(ScanItem item) async {
+    final List<File> files = _engine.filesForCategory(item.id);
+    if (!mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF10172A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+            child: SizedBox(
+              height: MediaQuery.of(sheetContext).size.height * 0.72,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.title, style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Text('${files.length} ملف مكتشف • ${item.readableSize} إجمالي الحجم المرصود',
+                    style: const TextStyle(color: Color(0xFF00F2FE), fontSize: 13)),
+                  const SizedBox(height: 8),
+                  const Text('راجع الاسم والمسار قبل اختيار الفئة للتنظيف. عرض الملفات لا يعني أنها حُذفت.',
+                    style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4)),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: files.isEmpty
+                      ? const Center(child: Text('لا توجد تفاصيل ملفات متاحة لهذه الفئة.', style: TextStyle(color: Colors.white70)))
+                      : ListView.separated(
+                          itemCount: files.length,
+                          separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
+                          itemBuilder: (_, index) {
+                            final file = files[index];
+                            return FutureBuilder<int>(
+                              future: file.length(),
+                              builder: (context, snapshot) {
+                                final size = snapshot.hasData ? formatBytes(snapshot.data!) : 'جارٍ حساب الحجم...';
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: const Icon(Icons.insert_drive_file_outlined, color: Color(0xFF00F2FE)),
+                                  title: Text(file.uri.pathSegments.isEmpty ? file.path : file.uri.pathSegments.last,
+                                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                                    maxLines: 2, overflow: TextOverflow.ellipsis),
+                                  subtitle: Text(file.path, style: const TextStyle(color: Colors.white60, fontSize: 10),
+                                    maxLines: 2, overflow: TextOverflow.ellipsis),
+                                  trailing: Text(size, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // بدء الفحص
   // ---------------------------------------------------------------------------
@@ -935,6 +1000,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   itemBuilder: (context, index) {
                                     return ScanResultCard(
                                       item: scanItems[index],
+                                      onDetails: () => _showCategoryDetails(scanItems[index]),
                                       onChanged: (value) {
                                         setState(() {
                                           scanItems[index] =
@@ -994,41 +1060,19 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             _currentIndex = index;
           });
-
-          switch (index) {
-            case 0:
-              break;
-
-            case 1:
-              _showMessage('قسم الأدوات قيد التطوير.');
-              break;
-
-            case 2:
-              _showMessage('قسم المراقبة قيد التطوير.');
-              break;
-
-            case 3:
-              Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                  builder: (_) => const SettingsScreen(),
-                ),
-              );
-              break;
+          if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => const SettingsScreen(),
+              ),
+            );
           }
         },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.grid_view_rounded, size: 20),
             label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.construction_rounded, size: 20),
-            label: 'Tools',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics_outlined, size: 20),
-            label: 'Monitor',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined, size: 20),
