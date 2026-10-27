@@ -800,7 +800,7 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
+          icon: const Icon(Icons.menu, color: Color(0xFF172A45)),
           onPressed: () {
             _scaffoldKey.currentState?.openDrawer();
           },
@@ -809,10 +809,10 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text(
           'AI OPTIMIZER',
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
+            color: Color(0xFF172A45),
+            fontSize: 19,
             fontWeight: FontWeight.bold,
-            letterSpacing: 2,
+            letterSpacing: 1,
           ),
         ),
         actions: const [],
@@ -973,18 +973,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               const Text(
                                 'العناصر المكتشفة',
                                 style: TextStyle(
-                                  fontSize: 20,
+                                  fontSize: 23,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: Color(0xFF172A45),
                                 ),
                               ),
                               const SizedBox(height: 5),
                               Text(
                                 'وجدنا ${scanItems.length} فئات مرشحة. افتح التفاصيل لمراجعة أسماء الملفات ومساراتها وأحجامها قبل الاختيار.',
                                 style: const TextStyle(
-                                  color: Color(0xFFE0E8F5),
-                                  fontSize: 14,
-                                  height: 1.45,
+                                  color: Color(0xFF34445B),
+                                  fontSize: 16,
+                                  height: 1.5,
                                 ),
                               ),
                               const SizedBox(height: 10),
