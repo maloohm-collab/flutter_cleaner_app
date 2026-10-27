@@ -879,7 +879,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Expanded(child: _buildStatColumn('${_engine.imageFiles}', 'Photos • ${formatBytes(_engine.imageBytes)}', const Color(0xFF64B5F6))),
                           Expanded(child: _buildStatColumn('${_engine.videoFiles}', 'Videos • ${formatBytes(_engine.videoBytes)}', const Color(0xFFFFB74D))),
-                          Expanded(child: _buildStatColumn('${_engine.otherFiles}', 'Other files • ${formatBytes(_engine.otherBytes)}', Colors.white70)),
+                          Expanded(child: _buildStatColumn('${_engine.otherFiles}', 'Other files • ${formatBytes(_engine.otherBytes)}', const Color(0xFF34445B))),
                         ],
                       ),
                       const SizedBox(height: 6),
