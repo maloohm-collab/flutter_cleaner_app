@@ -19,21 +19,23 @@ class CleanerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'AI Optimizer',
       theme: ThemeData(
-        brightness: Brightness.dark,
+        brightness: Brightness.light,
         scaffoldBackgroundColor: AppColors.background,
         primaryColor: AppColors.primary,
         fontFamily: 'Roboto',
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
-          brightness: Brightness.dark,
+          brightness: Brightness.light,
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
+          foregroundColor: AppColors.textPrimary,
           elevation: 0,
           centerTitle: true,
         ),
         snackBarTheme: SnackBarThemeData(
-          backgroundColor: AppColors.card,
+          backgroundColor: const Color(0xFF172A45),
+          contentTextStyle: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
