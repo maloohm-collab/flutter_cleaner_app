@@ -74,6 +74,10 @@ class CleanerEngine {
 
   int get totalItems => _results.length;
 
+  /// Returns the real files discovered for a category, without exposing the internal map.
+  List<File> filesForCategory(String categoryId) =>
+      List<File>.unmodifiable(_filesByCategory[categoryId] ?? const <File>[]);
+
   /// يعيد مجلد التخزين الذي سيبدأ منه الفحص.
   List<Directory> getScanDirectories() {
     return <Directory>[Directory(_storageRoot)];
