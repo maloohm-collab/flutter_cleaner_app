@@ -782,32 +782,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             ListTile(
-              leading: const Icon(
-                Icons.shield_outlined,
-                color: Colors.white70,
-              ),
-              title: const Text(
-                'AI Deep Shield',
-                style: TextStyle(color: Colors.white),
-              ),
+              leading: const Icon(Icons.settings_outlined, color: Colors.white70),
+              title: const Text('Settings', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                _showMessage('ميزة الحماية قيد التطوير.');
-              },
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.history_toggle_off_rounded,
-                color: Colors.white70,
-              ),
-              title: const Text(
-                'Cleaning History',
-                style: TextStyle(color: Colors.white),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _showMessage(
-                  'سجل التنظيف الدائم غير متاح بعد؛ السجل الحالي مؤقت.',
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SettingsScreen(),
+                  ),
                 );
               },
             ),
@@ -1148,7 +1131,7 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Text(
-            'SCAN SUMMARY',
+            'FILES FOUND',
             style: TextStyle(
               color: Colors.white60,
               fontSize: 10,
@@ -1286,6 +1269,49 @@ class _HomeScreenState extends State<HomeScreen> {
   // سجل العمليات والأدوات
   // ---------------------------------------------------------------------------
 
+  void _showOperationLog() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF10172A),
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.of(sheetContext).size.height * 0.65,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('سجل العملية الحالية',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                const Text('السجل مؤقت ويُمسح عند بدء عملية جديدة.',
+                  style: TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: logs.isEmpty
+                    ? const Center(child: Text('لا توجد عمليات مسجلة.', style: TextStyle(color: Colors.white70)))
+                    : ListView.builder(
+                        itemCount: logs.length,
+                        itemBuilder: (_, index) {
+                          final entry = logs[index];
+                          return ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.info_outline, color: Color(0xFF00F2FE)),
+                            title: Text(entry['message'] ?? '', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                            subtitle: Text(entry['time'] ?? '', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                          );
+                        },
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildLogsAndTools() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1308,10 +1334,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               onPressed: () {
-                _showMessage('عرض السجل الكامل قيد التطوير.');
+                _showOperationLog();
               },
               child: const Text(
-                'View All >',
+                'View log',
                 style: TextStyle(
                   color: Color(0xFF4FACFE),
                   fontSize: 12,
