@@ -110,13 +110,13 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         ),
                         const SizedBox(height: 12),
                         const Text(
-                          'نسخة تطوير • التفعيل الحالي محلي وتجريبي',
+                          'تفعيل AI Optimizer',
                           style: TextStyle(color: Color(0xFF00F2FE), fontSize: 14),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 20),
                         const Text(
-                          'قبل الإطلاق التجاري سنربط التفعيل بنظام اشتراكات آمن؛ لا تعتمد هذه النسخة للتحقق من المدفوعات.',
+                          'أدخل رمز التفعيل الذي حصلت عليه من فريق الدعم.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.orangeAccent, fontSize: 12, height: 1.45),
                         ),
@@ -165,7 +165,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         ),
                         const SizedBox(height: 20),
                         const Text(
-                          'تنبيه: لا يوجد ربط دفع أو تحقق اشتراك عبر الإنترنت حاليًا. رمز التفعيل محلي للاختبار فقط، ولا يثبت إتمام الدفع.',
+                          'للمساعدة في الاشتراك أو التفعيل، تواصل مع فريق الدعم عبر واتساب.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.white54, fontSize: 12),
                         ),
