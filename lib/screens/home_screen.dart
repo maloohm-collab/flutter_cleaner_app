@@ -967,46 +967,42 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       )
                     : scanItems.isNotEmpty
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        ? ListView(
+                            padding: const EdgeInsets.only(bottom: 12),
                             children: [
-                              const Text(
-                                'العناصر المكتشفة',
-                                style: TextStyle(
-                                  fontSize: 23,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF172A45),
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEAF4FF),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: const Color(0xFF9CBFE2), width: 1.3),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'العناصر المكتشفة',
+                                      style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: Color(0xFF142B49)),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'تم العثور على ${scanItems.length} فئات مرشحة. افتح زر التفاصيل في كل بطاقة لمشاهدة أسماء الملفات ومساراتها وأحجامها قبل اختيار الحذف.',
+                                      style: const TextStyle(color: Color(0xFF243B56), fontSize: 17, height: 1.5, fontWeight: FontWeight.w500),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 5),
-                              Text(
-                                'وجدنا ${scanItems.length} فئات مرشحة. افتح التفاصيل لمراجعة أسماء الملفات ومساراتها وأحجامها قبل الاختيار.',
-                                style: const TextStyle(
-                                  color: Color(0xFF34445B),
-                                  fontSize: 16,
-                                  height: 1.5,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Expanded(
-                                child: ListView.builder(
-                                  itemCount: scanItems.length,
-                                  itemBuilder: (context, index) {
-                                    return ScanResultCard(
-                                      item: scanItems[index],
-                                      onDetails: () => _showCategoryDetails(scanItems[index]),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          scanItems[index] =
-                                              scanItems[index].copyWith(
-                                            selected: value ?? false,
-                                          );
-                                        });
-                                      },
-                                    );
+                              for (int index = 0; index < scanItems.length; index++)
+                                ScanResultCard(
+                                  item: scanItems[index],
+                                  onDetails: () => _showCategoryDetails(scanItems[index]),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      scanItems[index] = scanItems[index].copyWith(selected: value ?? false);
+                                    });
                                   },
                                 ),
-                              ),
                             ],
                           )
                         : _buildLogsAndTools(),
