@@ -65,6 +65,11 @@ class CleanerEngine {
   /// الحجم الإجمالي للملفات المرشحة، بالبايت.
   int _totalBytes = 0;
 
+  /// Bytes belonging only to files successfully deleted in the latest cleanup.
+  int _lastDeletedBytes = 0;
+
+  int get lastDeletedBytes => _lastDeletedBytes;
+
   // Read-only inventory of media files reachable in shared storage.
   int _imageFiles = 0;
   int _imageBytes = 0;
@@ -284,6 +289,7 @@ class CleanerEngine {
     }
 
     int deletedFiles = 0;
+    _lastDeletedBytes = 0;
     final Set<String> processedPaths = <String>{};
 
     // نتحقق من النتائج الحالية بدل الاعتماد على بيانات الواجهة وحدها.
@@ -339,8 +345,10 @@ class CleanerEngine {
             continue;
           }
 
+          final int bytesBeforeDelete = await file.length();
           await file.delete();
           deletedFiles++;
+          _lastDeletedBytes += bytesBeforeDelete;
         } on FileSystemException {
           // نتجاوز الملف الذي تعذر حذفه ونواصل بقية الملفات.
         }
@@ -371,8 +379,6 @@ class CleanerEngine {
     if (junkExtensions.any(fileName.endsWith)) {
       return 'temporary_files';
     }
-
-    final List<String> segments = lowerPath.split('/');
 
     return null;
   }
