@@ -1,7 +1,6 @@
-// Result card: explicit inspection before user-confirmed cleanup.
+// Result card: readable contrast and explicit file inspection before cleanup.
 import 'package:flutter/material.dart';
 import 'package:flutter_cleaner_app/services/scan_item.dart';
-import '../utils/colors.dart';
 
 class ScanResultCard extends StatelessWidget {
   final ScanItem item;
@@ -17,69 +16,112 @@ class ScanResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final Color accent = item.id == 'thumbnail_files'
+        ? const Color(0xFF087F8C)
+        : const Color(0xFF2457A7);
+    return Card(
       margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF243650),
+      color: const Color(0xFFFFFFFF),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF6E8AAE), width: 1.2),
+        side: const BorderSide(color: Color(0xFFD3DEEA), width: 1.2),
       ),
-      child: Column(
-        children: [
-          CheckboxListTile(
-            value: item.selected,
-            onChanged: item.safeToDelete ? onChanged : null,
-            activeColor: AppColors.primary,
-            secondary: Icon(
-              item.id == 'thumbnail_files'
-                  ? Icons.photo_size_select_small_outlined
-                  : Icons.folder_open_outlined,
-              color: AppColors.primary,
-              size: 28,
-            ),
-            title: Text(
-              item.title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                color: Colors.white,
-              ),
-            ),
-            subtitle: Text(
-              item.safeToDelete
-                  ? '${item.files} ملف مكتشف\n${item.readableSize}\nيمكنك مراجعة المسارات قبل الحذف.'
-                  : '${item.files} ملف مكتشف\n${item.readableSize}\nللعرض فقط؛ لا يمكن حذف هذه الفئة من التطبيق.',
-              style: const TextStyle(
-                color: const Color(0xFFE2EAF5),
-                fontSize: 15,
-                height: 1.5,
-              ),
-            ),
-            controlAffinity: ListTileControlAffinity.trailing,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            isThreeLine: true,
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: onDetails,
-                icon: const Icon(Icons.visibility_outlined, size: 21),
-                label: const Text(
-                  'إظهار تفاصيل الملفات والمسارات قبل الحذف',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(.10),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(
+                    item.id == 'thumbnail_files'
+                        ? Icons.photo_size_select_small_outlined
+                        : Icons.folder_open_outlined,
+                    color: accent,
+                    size: 28,
+                  ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFDAF5FF),
-                  foregroundColor: const Color(0xFF12344A),
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item.title,
+                        style: const TextStyle(
+                          color: Color(0xFF172A45),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        )),
+                      const SizedBox(height: 5),
+                      Text('${item.files} ملف مكتشف • ${item.readableSize}',
+                        style: const TextStyle(
+                          color: Color(0xFF26384F),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        )),
+                      const SizedBox(height: 4),
+                      Text(
+                        item.safeToDelete
+                            ? 'راجع أسماء الملفات ومساراتها قبل أن تختار الحذف.'
+                            : 'هذه الفئة للعرض فقط ولا يمكن حذفها من التطبيق.',
+                        style: const TextStyle(
+                          color: Color(0xFF4A5B70),
+                          fontSize: 15,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: onDetails,
+              icon: const Icon(Icons.manage_search_rounded, size: 23),
+              label: const Text(
+                'إظهار تفاصيل الملفات التي تريد حذفها',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: accent,
+                side: BorderSide(color: accent, width: 1.4),
+                backgroundColor: accent.withOpacity(.055),
+                minimumSize: const Size.fromHeight(52),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-          ),
-        ],
+            if (item.safeToDelete) ...[
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                value: item.selected,
+                onChanged: onChanged,
+                activeColor: accent,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: const Text('تحديد هذه الفئة للحذف',
+                  style: TextStyle(
+                    color: Color(0xFF172A45),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  )),
+                subtitle: const Text('سيطلب التطبيق تأكيدًا قبل بدء الحذف.',
+                  style: TextStyle(color: Color(0xFF52647A), fontSize: 14)),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
