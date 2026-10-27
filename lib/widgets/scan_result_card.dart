@@ -67,8 +67,8 @@ class ScanResultCard extends StatelessWidget {
                 onPressed: onDetails,
                 icon: const Icon(Icons.visibility_outlined, size: 21),
                 label: const Text(
-                  'عرض التفاصيل والمسارات قبل الحذف',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  'إظهار تفاصيل الملفات التي تريد حذفها',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.field,
