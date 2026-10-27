@@ -462,11 +462,11 @@ class _HomeScreenState extends State<HomeScreen> {
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF25334D),
+          backgroundColor: const Color(0xFFFFFFFF),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
-              color: Colors.white.withOpacity(0.08),
+              color: const Color(0xFFD3DEEA),
             ),
           ),
           title: const Row(
@@ -481,8 +481,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text(
                   'تأكيد حذف الملفات',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
+                    color: const Color(0xFF172A45),
+                    fontSize: 19,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -495,9 +495,9 @@ class _HomeScreenState extends State<HomeScreen> {
             'الحجم التقديري: ${formatBytes(selectedBytes)}\n\n'
             'قد يتعذر حذف بعض الملفات. لا تتابع إذا لم تكن متأكدًا من العناصر المحددة.',
             style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-              height: 1.5,
+              color: const Color(0xFF26384F),
+              fontSize: 16,
+              height: 1.55,
             ),
           ),
           actions: [
@@ -517,7 +517,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Text(
                 'متابعة الحذف',
                 style: TextStyle(
-                  color: Color(0xFF00F2FE),
+                  color: Color(0xFF087F9B),
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
