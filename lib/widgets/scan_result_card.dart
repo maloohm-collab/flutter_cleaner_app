@@ -43,10 +43,14 @@ class ScanResultCard extends StatelessWidget {
   /// يستقبل حالة التحديد الجديدة من مربع الاختيار.
   final ValueChanged<bool?> onChanged;
 
+  /// فتح تفاصيل الملفات الفعلية ضمن الفئة.
+  final VoidCallback? onDetails;
+
   const ScanResultCard({
     super.key,
     required this.item,
     required this.onChanged,
+    this.onDetails,
   });
 
   @override
@@ -61,9 +65,10 @@ class ScanResultCard extends StatelessWidget {
         value: item.selected,
         onChanged: item.safeToDelete ? onChanged : null,
         activeColor: AppColors.primary,
-        secondary: const Icon(
-          Icons.auto_delete,
-          color: AppColors.primary,
+        secondary: IconButton(
+          tooltip: 'عرض الملفات والمسارات',
+          onPressed: onDetails,
+          icon: const Icon(Icons.folder_open_outlined, color: AppColors.primary),
         ),
         title: Text(
           item.title,
