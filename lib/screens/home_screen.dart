@@ -172,12 +172,12 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final List<dynamic> apps = await _appCacheChannel.invokeMethod<List<dynamic>>('listApps') ?? [];
       if (!mounted) return;
-      showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: const Color(0xFF10172A), builder: (sheetContext) => SafeArea(child: SizedBox(height: MediaQuery.of(sheetContext).size.height * 0.82, child: Column(children: [
+      showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: const Color(0xFF25334D), builder: (sheetContext) => SafeArea(child: SizedBox(height: MediaQuery.of(sheetContext).size.height * 0.82, child: Column(children: [
         const Padding(padding: EdgeInsets.all(16), child: Text('مراجعة ذاكرة التطبيقات', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
-        const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('اختر تطبيقًا لفتح صفحة التخزين في إعدادات Android، ثم امسح ذاكرة التخزين المؤقت يدويًا. لا يمكن للتطبيق قراءة ذاكرة التطبيقات الخاصة أو حذفها مباشرة.', style: TextStyle(color: Colors.white70, fontSize: 12))),
+        const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('اختر تطبيقًا لفتح صفحة التخزين في إعدادات Android، ثم امسح ذاكرة التخزين المؤقت يدويًا. لا يمكن للتطبيق قراءة ذاكرة التطبيقات الخاصة أو حذفها مباشرة.', style: TextStyle(color: Color(0xFFE0E7F2), fontSize: 15, height: 1.5))),
         Expanded(child: ListView.builder(itemCount: apps.length, itemBuilder: (_, index) {
           final app = Map<String, dynamic>.from(apps[index] as Map);
-          return ListTile(leading: const Icon(Icons.apps, color: Color(0xFF00F2FE)), title: Text(app['name'].toString(), style: const TextStyle(color: Colors.white)), subtitle: Text(app['packageName'].toString(), style: const TextStyle(color: Colors.white54, fontSize: 10)), trailing: const Icon(Icons.open_in_new, color: Color(0xFFFFB74D)), onTap: () async { Navigator.pop(sheetContext); try { await _appCacheChannel.invokeMethod('openAppSettings', {'packageName': app['packageName']}); } on PlatformException { if (mounted) _showMessage('تعذر فتح إعدادات التطبيق.'); } });
+          return ListTile(leading: const Icon(Icons.apps, color: Color(0xFF00F2FE)), title: Text(app['name'].toString(), style: const TextStyle(color: Colors.white)), subtitle: Text(app['packageName'].toString(), style: const TextStyle(color: Color(0xFFD4DEEF), fontSize: 12)), trailing: const Icon(Icons.open_in_new, color: Color(0xFFFFB74D)), onTap: () async { Navigator.pop(sheetContext); try { await _appCacheChannel.invokeMethod('openAppSettings', {'packageName': app['packageName']}); } on PlatformException { if (mounted) _showMessage('تعذر فتح إعدادات التطبيق.'); } });
         })),
         TextButton(onPressed: () async { try { await _appCacheChannel.invokeMethod('openStorageSettings'); } on PlatformException { if (mounted) _showMessage('تعذر فتح إعدادات التطبيقات.'); } }, child: const Text('فتح إعدادات جميع التطبيقات')),
       ]))));
@@ -220,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.insert_drive_file_outlined, color: Color(0xFF00F2FE)),
                             title: Text(segments.isEmpty ? entry.key : segments.last,
-                              style: const TextStyle(color: Colors.white, fontSize: 13),
+                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                               maxLines: 2, overflow: TextOverflow.ellipsis),
                             subtitle: Text(entry.key,
                               style: const TextStyle(color: Colors.white54, fontSize: 10),
@@ -260,10 +260,10 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.title, style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold)),
+                  Text(item.title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   Text('${files.length} ملف مكتشف • ${item.readableSize} إجمالي الحجم المرصود',
-                    style: const TextStyle(color: Color(0xFF00F2FE), fontSize: 13)),
+                    style: const TextStyle(color: Color(0xFF8CEBFF), fontSize: 15, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   const Text('راجع الاسم والمسار قبل اختيار الفئة للتنظيف. عرض الملفات لا يعني أنها حُذفت.',
                     style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4)),
@@ -284,9 +284,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                   contentPadding: EdgeInsets.zero,
                                   leading: const Icon(Icons.insert_drive_file_outlined, color: Color(0xFF00F2FE)),
                                   title: Text(file.uri.pathSegments.isEmpty ? file.path : file.uri.pathSegments.last,
-                                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                                    style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
                                     maxLines: 2, overflow: TextOverflow.ellipsis),
-                                  subtitle: Text(file.path, style: const TextStyle(color: Colors.white60, fontSize: 10),
+                                  subtitle: Text(file.path, style: const TextStyle(color: Color(0xFFD4DEEF), fontSize: 12),
                                     maxLines: 2, overflow: TextOverflow.ellipsis),
                                   trailing: Text(size, style: const TextStyle(color: Colors.white70, fontSize: 11)),
                                 );
@@ -494,7 +494,7 @@ class _HomeScreenState extends State<HomeScreen> {
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF0E1326),
+          backgroundColor: const Color(0xFF25334D),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
@@ -936,7 +936,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10172A),
+                    color: const Color(0xFF25334D),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: Colors.white12),
                   ),
