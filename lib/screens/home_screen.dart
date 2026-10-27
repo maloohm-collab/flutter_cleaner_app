@@ -1367,7 +1367,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 10),
         const Text(
-          'Smart Tools',
+          'Quick Actions',
           style: TextStyle(
             color: Colors.white,
             fontSize: 13,
@@ -1384,26 +1384,8 @@ class _HomeScreenState extends State<HomeScreen> {
               performCleaning,
             ),
             _buildInteractiveTool(
-              Icons.folder_open_outlined,
-              'Large Files',
-              () {
-                _showMessage(
-                  'ميزة البحث عن الملفات الكبيرة قيد التطوير.',
-                );
-              },
-            ),
-            _buildInteractiveTool(
-              Icons.copy_all_outlined,
-              'Duplicates',
-              () {
-                _showMessage(
-                  'ميزة البحث عن الملفات المكررة قيد التطوير.',
-                );
-              },
-            ),
-            _buildInteractiveTool(
-              Icons.developer_mode_outlined,
-              'App Manager',
+              Icons.settings_outlined,
+              'Settings',
               () {
                 Navigator.push(
                   context,
