@@ -872,7 +872,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       const Text(
                         'STORAGE INVENTORY • ACCESSIBLE FILES',
-                        style: TextStyle(color: Color(0xFF172A45), fontSize: 14, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -885,7 +885,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 6),
                       const Text(
                         'Inventory is limited to files Android allowed the app to read; it is not the phone’s complete storage meter.',
-                        style: TextStyle(color: Color(0xFF52647A), fontSize: 13, height: 1.4),
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.4),
                       ),
                       Align(
                         alignment: Alignment.centerRight,
@@ -893,7 +893,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onPressed: _showLargestFiles,
                           icon: const Icon(Icons.storage_rounded, size: 16),
                           label: const Text('View largest files'),
-                          style: TextButton.styleFrom(foregroundColor: const Color(0xFF075E75)),
+                          style: TextButton.styleFrom(foregroundColor: AppColors.primary),
                         ),
                       ),
                     ],
@@ -917,7 +917,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               state.currentTask,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                color: const Color(0xFF26384F),
+                                color: AppColors.textPrimary,
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -933,21 +933,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                 margin: const EdgeInsets.only(bottom: 12),
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEAF4FF),
+                                  color: AppColors.card,
                                   borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: const Color(0xFF9CBFE2), width: 1.3),
+                                  border: Border.all(color: AppColors.border, width: 1.3),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const Text(
                                       'العناصر المكتشفة',
-                                      style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: Color(0xFF142B49)),
+                                      style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
                                       'تم العثور على ${scanItems.length} فئات مرشحة. افتح زر التفاصيل في كل بطاقة لمشاهدة أسماء الملفات ومساراتها وأحجامها قبل اختيار الحذف.',
-                                      style: const TextStyle(color: Color(0xFF243B56), fontSize: 17, height: 1.5, fontWeight: FontWeight.w500),
+                                      style: TextStyle(color: AppColors.textSecondary, fontSize: 17, height: 1.5, fontWeight: FontWeight.w500),
                                     ),
                                   ],
                                 ),
