@@ -669,10 +669,10 @@ class _HomeScreenState extends State<HomeScreen> {
             : 0;
 
     final String filesLabel = _hasScanned
-        ? 'Files Found'
+        ? 'Candidates'
         : showLastCleanup
             ? 'Files Deleted'
-            : 'Files Found';
+            : 'Candidates';
 
     final String bytesLabel = _hasScanned
         ? 'Candidate Size'
