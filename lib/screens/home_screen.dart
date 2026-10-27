@@ -165,6 +165,25 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  static const MethodChannel _appCacheChannel = MethodChannel('ai_optimizer/app_cache_review');
+
+  Future<void> _showAppCacheReview() async {
+    if (!Platform.isAndroid) { _showMessage('هذه الميزة متاحة على Android فقط.'); return; }
+    try {
+      final List<dynamic> apps = await _appCacheChannel.invokeMethod<List<dynamic>>('listApps') ?? [];
+      if (!mounted) return;
+      showModalBottomSheet<void>(context: context, isScrollControlled: true, backgroundColor: const Color(0xFF10172A), builder: (sheetContext) => SafeArea(child: SizedBox(height: MediaQuery.of(sheetContext).size.height * 0.82, child: Column(children: [
+        const Padding(padding: EdgeInsets.all(16), child: Text('مراجعة ذاكرة التطبيقات', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+        const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Text('اختر تطبيقًا لفتح صفحة التخزين في إعدادات Android، ثم امسح ذاكرة التخزين المؤقت يدويًا. لا يمكن للتطبيق قراءة ذاكرة التطبيقات الخاصة أو حذفها مباشرة.', style: TextStyle(color: Colors.white70, fontSize: 12))),
+        Expanded(child: ListView.builder(itemCount: apps.length, itemBuilder: (_, index) {
+          final app = Map<String, dynamic>.from(apps[index] as Map);
+          return ListTile(leading: const Icon(Icons.apps, color: Color(0xFF00F2FE)), title: Text(app['name'].toString(), style: const TextStyle(color: Colors.white)), subtitle: Text(app['packageName'].toString(), style: const TextStyle(color: Colors.white54, fontSize: 10)), trailing: const Icon(Icons.open_in_new, color: Color(0xFFFFB74D)), onTap: () async { Navigator.pop(sheetContext); try { await _appCacheChannel.invokeMethod('openAppSettings', {'packageName': app['packageName']}); } on PlatformException { if (mounted) _showMessage('تعذر فتح إعدادات التطبيق.'); } });
+        })),
+        TextButton(onPressed: () async { try { await _appCacheChannel.invokeMethod('openStorageSettings'); } on PlatformException { if (mounted) _showMessage('تعذر فتح إعدادات التطبيقات.'); } }, child: const Text('فتح إعدادات جميع التطبيقات')),
+      ]))));
+    } on PlatformException { if (mounted) _showMessage('تعذر قراءة قائمة التطبيقات.'); }
+  }
+
   void _showLargestFiles() {
     final files = _engine.largestAccessibleFiles;
     showModalBottomSheet<void>(
@@ -1449,6 +1468,7 @@ class _HomeScreenState extends State<HomeScreen> {
               'Deep Clean',
               performCleaning,
             ),
+            _buildInteractiveTool(Icons.apps_outlined, 'App Cache', _showAppCacheReview),
             _buildInteractiveTool(
               Icons.settings_outlined,
               'Settings',
