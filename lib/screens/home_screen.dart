@@ -186,54 +186,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showLargestFiles() {
     final files = _engine.largestAccessibleFiles;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFFF4F7FB),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        child: SizedBox(
-          height: MediaQuery.of(sheetContext).size.height * 0.75,
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('أكبر الملفات التي أمكن قراءتها',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                const Text('قائمة للعرض فقط. لا يتم حذف الصور أو الفيديوهات من هذه الشاشة.',
-                  style: TextStyle(color: Colors.white70, fontSize: 12)),
-                const SizedBox(height: 10),
-                Expanded(
-                  child: files.isEmpty
-                    ? const Center(child: Text('أعد الفحص أولًا لعرض الملفات.', style: TextStyle(color: Colors.white70)))
-                    : ListView.separated(
-                        itemCount: files.length,
-                        separatorBuilder: (_, __) => const Divider(color: Color(0xFFD6E0EB), height: 1),
-                        itemBuilder: (_, index) {
-                          final entry = files[index];
-                          final segments = entry.key.split('/');
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.insert_drive_file_outlined, color: Color(0xFF087F8C), size: 28),
-                            title: Text(segments.isEmpty ? entry.key : segments.last,
-                              style: const TextStyle(color: Color(0xFF172A45), fontSize: 17, fontWeight: FontWeight.w700),
-                              maxLines: 2, overflow: TextOverflow.ellipsis),
-                            subtitle: Text(entry.key,
-                              style: const TextStyle(color: Color(0xFF34465D), fontSize: 13, height: 1.35),
-                              maxLines: 2, overflow: TextOverflow.ellipsis),
-                            trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF087F8C), size: 30),
-                            onTap: () => _showSingleFileDetails(entry.key, entry.value),
-                          );
-                        },
-                      ),
-                ),
-              ],
-            ),
-          ),
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => LargestFilesScreen(
+          files: files,
+          formatBytes: formatBytes,
+          onOpenFile: _showSingleFileDetails,
         ),
       ),
     );
@@ -855,10 +813,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   horizontal: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.04),
+                    color: const Color(0xFFCFDCE9),
                   ),
                 ),
                 child: Row(
@@ -872,7 +830,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       width: 1,
                       height: 22,
-                      color: Colors.white10,
+                      color: const Color(0xFFD5DFEA),
                     ),
                     _buildStatColumn(
                       formatBytes(displayedBytes),
@@ -914,7 +872,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       const Text(
                         'STORAGE INVENTORY • ACCESSIBLE FILES',
-                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Color(0xFF172A45), fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -927,7 +885,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 6),
                       const Text(
                         'Inventory is limited to files Android allowed the app to read; it is not the phone’s complete storage meter.',
-                        style: TextStyle(color: Colors.white60, fontSize: 10, height: 1.35),
+                        style: TextStyle(color: Color(0xFF52647A), fontSize: 13, height: 1.4),
                       ),
                       Align(
                         alignment: Alignment.centerRight,
@@ -935,7 +893,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           onPressed: _showLargestFiles,
                           icon: const Icon(Icons.storage_rounded, size: 16),
                           label: const Text('View largest files'),
-                          style: TextButton.styleFrom(foregroundColor: const Color(0xFF00F2FE)),
+                          style: TextButton.styleFrom(foregroundColor: const Color(0xFF075E75)),
                         ),
                       ),
                     ],
@@ -1672,6 +1630,116 @@ class FilePathDetailsScreen extends StatelessWidget {
           const Text('لم يتم فتح الملف أو حذفه. هذه صفحة معلومات لمساعدتك على الوصول إليه يدويًا عبر مدير الملفات.', style: TextStyle(color: Color(0xFF43536A), fontSize: 15, height: 1.5)),
         ])),
       ]),
+    );
+  }
+}
+
+
+/// شاشة كاملة لعرض الملفات الأكبر حجمًا مع اسم الملف ومساره وحجمه.
+class LargestFilesScreen extends StatelessWidget {
+  final List<MapEntry<String, int>> files;
+  final String Function(int) formatBytes;
+  final void Function(String, int) onOpenFile;
+
+  const LargestFilesScreen({
+    super.key,
+    required this.files,
+    required this.formatBytes,
+    required this.onOpenFile,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1F5FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF172A45),
+        title: const Text('أكبر الملفات المكتشفة',
+            style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFCBD7E5)),
+            ),
+            child: const Text(
+              'هذه الملفات مرتبة حسب الحجم. اضغط على أي ملف لعرض اسمه الكامل ومساره وحجمه. هذه الشاشة لا تحذف الملفات.',
+              style: TextStyle(color: Color(0xFF243B56), fontSize: 16,
+                  height: 1.5, fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(
+            child: files.isEmpty
+                ? const Center(child: Text('لا توجد ملفات لعرضها. أعد الفحص أولًا.',
+                    style: TextStyle(color: Color(0xFF34465D), fontSize: 17)))
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                    itemCount: files.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final entry = files[index];
+                      final parts = entry.key.split('/');
+                      final name = parts.isEmpty ? entry.key : parts.last;
+                      return Material(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () => onOpenFile(entry.key, entry.value),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFCBD7E5)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.insert_drive_file_outlined,
+                                    color: Color(0xFF075E75), size: 30),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(name, style: const TextStyle(
+                                        color: Color(0xFF172A45), fontSize: 17,
+                                        fontWeight: FontWeight.w800)),
+                                      const SizedBox(height: 6),
+                                      Text(entry.key, style: const TextStyle(
+                                        color: Color(0xFF34465D), fontSize: 14,
+                                        height: 1.4)),
+                                      const SizedBox(height: 7),
+                                      Text('الحجم: ${formatBytes(entry.value)}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF075E75), fontSize: 15,
+                                          fontWeight: FontWeight.w800)),
+                                      const SizedBox(height: 8),
+                                      const Text('اضغط لعرض تفاصيل الملف',
+                                        style: TextStyle(
+                                          color: Color(0xFF52647A), fontSize: 14)),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(Icons.chevron_right_rounded,
+                                    color: Color(0xFF075E75), size: 28),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
