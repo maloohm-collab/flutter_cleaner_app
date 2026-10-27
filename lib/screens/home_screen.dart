@@ -825,7 +825,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildStatColumn(
                       '$displayedFiles',
                       filesLabel,
-                      const Color(0xFF00F2FE),
+                      const Color(0xFF087F9B),
                     ),
                     Container(
                       width: 1,
@@ -835,12 +835,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildStatColumn(
                       formatBytes(displayedBytes),
                       bytesLabel,
-                      const Color(0xFFE040FB),
+                      const Color(0xFF6D28A8),
                     ),
                     Container(
                       width: 1,
                       height: 22,
-                      color: Colors.white10,
+                      color: const Color(0xFFD5DFEA),
                     ),
                     _buildStatColumn(
                       state.scanning
@@ -853,7 +853,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ? 'Done'
                                       : '--',
                       'Operation',
-                      const Color(0xFF00E676),
+                      const Color(0xFF16734A),
                     ),
                   ],
                 ),
@@ -863,9 +863,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF25334D),
+                    color: const Color(0xFFFFFFFF),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white12),
+                    border: Border.all(color: const Color(0xFFB9C8D9), width: 1.2),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -917,9 +917,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               state.currentTask,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF26384F),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -1000,7 +1000,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: const Color(0xFF17243A),
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF00F2FE),
+        selectedItemColor: const Color(0xFF22D3C5),
         unselectedItemColor: Colors.white70,
         currentIndex: _currentIndex,
         selectedFontSize: 12,
@@ -1039,12 +1039,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildDynamicHealthCard() {
     String mainText = '--';
     String description = 'Scan Required';
-    Color textColor = Colors.white38;
+    Color textColor = const Color(0xFF52647A);
 
     Gradient cardGradient = LinearGradient(
       colors: [
-        Colors.white.withOpacity(0.04),
-        Colors.white.withOpacity(0.02),
+        const Color(0xFFFFFFFF),
+        const Color(0xFFF5F8FC),
       ],
     );
 
@@ -1055,8 +1055,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       cardGradient = LinearGradient(
         colors: [
-          const Color(0xFF00F2FE).withOpacity(0.15),
-          Colors.blue.withOpacity(0.05),
+          const Color(0xFFDDF5F7),
+          const Color(0xFFEAF0FF),
         ],
       );
     } else if (state.scanning || _isStartingScan) {
@@ -1070,8 +1070,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       cardGradient = LinearGradient(
         colors: [
-          const Color(0xFF00F2FE).withOpacity(0.10),
-          Colors.blue.withOpacity(0.03),
+          const Color(0xFFE4F5F8),
+          const Color(0xFFF0F5FF),
         ],
       );
     } else if (_hasCleanupResult) {
@@ -1089,7 +1089,7 @@ class _HomeScreenState extends State<HomeScreen> {
         gradient: cardGradient,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Colors.white.withOpacity(0.05),
+          color: const Color(0xFFB9C8D9),
         ),
       ),
       child: Column(
@@ -1099,8 +1099,8 @@ class _HomeScreenState extends State<HomeScreen> {
           const Text(
             'FILES FOUND',
             style: TextStyle(
-              color: Colors.white60,
-              fontSize: 10,
+              color: const Color(0xFF52647A),
+              fontSize: 12,
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5,
             ),
@@ -1111,8 +1111,8 @@ class _HomeScreenState extends State<HomeScreen> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
+              color: const Color(0xFF172A45),
+              fontSize: 26,
               fontWeight: FontWeight.w900,
               height: 1.1,
             ),
@@ -1156,10 +1156,10 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(12),
       height: 90,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Colors.white.withOpacity(0.04),
+          color: const Color(0xFFB9C8D9),
         ),
       ),
       child: Column(
@@ -1172,8 +1172,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 _isCleaning
                     ? Icons.delete_outline_rounded
                     : Icons.radar_outlined,
-                color: const Color(0xFF00F2FE),
-                size: 14,
+                color: const Color(0xFF087F9B),
+                size: 18,
               ),
               const SizedBox(width: 4),
               Expanded(
@@ -1182,8 +1182,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 10,
+                    color: const Color(0xFF52647A),
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1196,8 +1196,8 @@ class _HomeScreenState extends State<HomeScreen> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
+              color: const Color(0xFF172A45),
+              fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -1206,7 +1206,7 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: state.progress.clamp(0.0, 1.0).toDouble(),
-              backgroundColor: Colors.white10,
+              backgroundColor: const Color(0xFFD5DFEA),
               valueColor: const AlwaysStoppedAnimation<Color>(
                 Color(0xFF00F2FE),
               ),
@@ -1221,8 +1221,8 @@ class _HomeScreenState extends State<HomeScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Colors.white38,
-                fontSize: 9,
+                color: const Color(0xFF52647A),
+                fontSize: 11,
               ),
             ),
           ),
