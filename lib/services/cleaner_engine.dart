@@ -291,9 +291,9 @@ class CleanerEngine {
         continue;
       }
 
-      // لا يكفي أن تكون النسخة المرسلة من الواجهة محددة.
+      // اختيار المستخدم محفوظ في نسخة الواجهة؛ نتحقق هنا من أن
+      // الفئة ما زالت ضمن نتائج الفحص الحالي ومسموح بمعالجتها.
       if (!requestedItem.selected ||
-          !currentItem.selected ||
           !requestedItem.safeToDelete ||
           !currentItem.safeToDelete) {
         continue;
