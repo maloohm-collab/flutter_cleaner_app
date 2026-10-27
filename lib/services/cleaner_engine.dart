@@ -73,6 +73,14 @@ class CleanerEngine {
   int _videoBytes = 0;
   int _otherFiles = 0;
   int _otherBytes = 0;
+  final Map<String, int> _accessibleFileSizes = <String, int>{};
+
+  /// Largest readable files from the most recent scan, for inspection only.
+  List<MapEntry<String, int>> get largestAccessibleFiles {
+    final entries = _accessibleFileSizes.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    return List<MapEntry<String, int>>.unmodifiable(entries.take(50));
+  }
 
   static const Set<String> _imageExtensions = <String>{
     '.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.heic', '.heif',
@@ -127,6 +135,7 @@ class CleanerEngine {
     _videoBytes = 0;
     _otherFiles = 0;
     _otherBytes = 0;
+    _accessibleFileSizes.clear();
 
     final Map<String, List<File>> groupedFiles =
         <String, List<File>>{
@@ -192,7 +201,8 @@ class CleanerEngine {
             continue;
           }
 
-          // Inventory is informational only; personal media is never selected for deletion.
+          // Inventory is informational only; personal files are never selected for deletion here.
+          _accessibleFileSizes[entity.path] = fileBytes;
           final String lowerPath = entity.path.toLowerCase();
           final String fileName = lowerPath.split('/').last;
           final int dot = fileName.lastIndexOf('.');
