@@ -110,11 +110,17 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         ),
                         const SizedBox(height: 12),
                         const Text(
-                          'اشتراك لمدة 30 يومًا مقابل 2 دينار أردني',
+                          'نسخة تطوير • التفعيل الحالي محلي وتجريبي',
                           style: TextStyle(color: Color(0xFF00F2FE), fontSize: 14),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'قبل الإطلاق التجاري سنربط التفعيل بنظام اشتراكات آمن؛ لا تعتمد هذه النسخة للتحقق من المدفوعات.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.orangeAccent, fontSize: 12, height: 1.45),
+                        ),
+                        const SizedBox(height: 20),
                         TextField(
                           controller: _codeController,
                           textCapitalization: TextCapitalization.characters,
@@ -146,7 +152,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                             icon: const Icon(Icons.chat, color: Color(0xFF25D366)),
                             label: const Padding(
                               padding: EdgeInsets.symmetric(vertical: 14),
-                              child: Text('الاشتراك عبر واتساب — 2 دينار'),
+                              child: Text('التواصل عبر واتساب للاستفسار'),
                             ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.white,
@@ -159,7 +165,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         ),
                         const SizedBox(height: 20),
                         const Text(
-                          'بعد تأكيد الدفع، أدخل رمز التفعيل للبدء. مدة التفعيل 30 يومًا على هذا الجهاز.',
+                          'تنبيه: لا يوجد ربط دفع أو تحقق اشتراك عبر الإنترنت حاليًا. رمز التفعيل محلي للاختبار فقط، ولا يثبت إتمام الدفع.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.white54, fontSize: 12),
                         ),
