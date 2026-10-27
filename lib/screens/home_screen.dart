@@ -644,71 +644,6 @@ class _HomeScreenState extends State<HomeScreen> {
   // نافذة الاشتراك
   // ---------------------------------------------------------------------------
 
-  void _showPremiumSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF0E1326),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(20),
-        ),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.workspace_premium_rounded,
-                color: Color(0xFFFFD700),
-                size: 45,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'AI Premium',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'واجهة الاشتراك قيد التطوير. '
-                'لا يوجد حاليًا تفعيل فعلي للدفع أو ميزات تنظيف إضافية مرتبطة باشتراك.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: 13,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00F2FE),
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'قريبًا',
-                  style: TextStyle(
-                    color: Color(0xFF090D1A),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   // ---------------------------------------------------------------------------
   // بناء الواجهة
   // ---------------------------------------------------------------------------
@@ -836,16 +771,7 @@ class _HomeScreenState extends State<HomeScreen> {
             letterSpacing: 2,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.workspace_premium_rounded,
-              color: Color(0xFFFFD700),
-              size: 24,
-            ),
-            onPressed: _showPremiumSheet,
-          ),
-        ],
+        actions: const [],
       ),
       body: SafeArea(
         child: Padding(
