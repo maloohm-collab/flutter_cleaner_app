@@ -1,49 +1,11 @@
-// ============================================================
-// Project      : AI Cleaner
-// File         : lib/widgets/scan_result_card.dart
-// Version      : 1.1.0
-// Last Updated : 2026-10-10
-// Purpose      : عرض نتيجة فحص واحدة مع إمكانية تحديدها للتنظيف.
-//
-// Changes:
-// - توثيق الملف وإضافة بيانات الإصدار.
-// - الحفاظ على تصميم البطاقة الحالي.
-// - ربط مربع الاختيار بحالة ScanItem.selected.
-// - تمرير تغيير التحديد إلى العنصر الأب عبر onChanged.
-//
-// Safety Notes:
-// - هذا Widget للعرض وتغيير التحديد فقط.
-// - لا يحذف الملفات بنفسه.
-// - أمان الحذف يجب التحقق منه داخل محرك التنظيف.
-//
-// Dependencies:
-// - Flutter Material.
-// - lib/services/scan_item.dart
-// - lib/utils/colors.dart
-//
-// Compatibility:
-// - يعتمد على ScanItem وخصائصه الحالية.
-// - متوافق مع واجهة CheckboxListTile في Flutter.
-//
-// Validation:
-// - تمت مراجعة الكود منطقيًا.
-// - لم يتم إجراء Flutter build أو اختبارات تشغيلية.
-// ============================================================
-
+// Result card: explicit inspection before user-confirmed cleanup.
 import 'package:flutter/material.dart';
 import 'package:flutter_cleaner_app/services/scan_item.dart';
-
 import '../utils/colors.dart';
 
-/// بطاقة تعرض فئة من الملفات المكتشفة أثناء الفحص.
 class ScanResultCard extends StatelessWidget {
-  /// بيانات العنصر المعروض.
   final ScanItem item;
-
-  /// يستقبل حالة التحديد الجديدة من مربع الاختيار.
   final ValueChanged<bool?> onChanged;
-
-  /// فتح تفاصيل الملفات الفعلية ضمن الفئة.
   final VoidCallback? onDetails;
 
   const ScanResultCard({
@@ -60,32 +22,64 @@ class ScanResultCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
       ),
-      child: Column(\n        children: [\n          CheckboxListTile(
-        value: item.selected,
-        onChanged: item.safeToDelete ? onChanged : null,
-        activeColor: AppColors.primary,
-        secondary: IconButton(
-          tooltip: 'عرض الملفات والمسارات',
-          onPressed: onDetails,
-          icon: const Icon(Icons.folder_open_outlined, color: AppColors.primary),
-        ),
-        title: Text(
-          item.title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
+      child: Column(
+        children: [
+          CheckboxListTile(
+            value: item.selected,
+            onChanged: item.safeToDelete ? onChanged : null,
+            activeColor: AppColors.primary,
+            secondary: Icon(
+              item.id == 'thumbnail_files'
+                  ? Icons.photo_size_select_small_outlined
+                  : Icons.folder_open_outlined,
+              color: AppColors.primary,
+              size: 28,
+            ),
+            title: Text(
+              item.title,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            subtitle: Text(
+              item.safeToDelete
+                  ? '${item.files} ملف مكتشف\n${item.readableSize}\nيمكنك مراجعة المسارات قبل الحذف.'
+                  : '${item.files} ملف مكتشف\n${item.readableSize}\nللعرض فقط؛ لا يمكن حذف هذه الفئة من التطبيق.',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            controlAffinity: ListTileControlAffinity.trailing,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            isThreeLine: true,
           ),
-        ),
-        subtitle: Text(
-          item.safeToDelete
-              ? '${item.files} files\n${item.readableSize}\nراجع الملفات قبل الحذف.'
-              : '${item.files} files\n${item.readableSize}\nللعرض فقط حاليًا — لا يُسمح بحذف هذه الفئة تلقائيًا.',
-        ),
-        controlAffinity: ListTileControlAffinity.trailing,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 6,
-        ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onDetails,
+                icon: const Icon(Icons.visibility_outlined, size: 21),
+                label: const Text(
+                  'عرض التفاصيل والمسارات قبل الحذف',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.field,
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
