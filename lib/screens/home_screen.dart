@@ -93,6 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // معلومات آخر عملية تنظيف.
   int _lastDeletedFiles = 0;
+  int _lastDeletedBytes = 0;
   int _lastSelectedBytes = 0;
   bool _hasCleanupResult = false;
   String _lastCleanupMessage = 'لم تبدأ عملية التنظيف بعد';
@@ -599,6 +600,7 @@ class _HomeScreenState extends State<HomeScreen> {
       scanItems = <ScanItem>[];
 
       _lastDeletedFiles = deletedCount;
+      _lastDeletedBytes = _engine.lastDeletedBytes;
       _hasCleanupResult = true;
 
       if (operationFailed) {
@@ -606,7 +608,7 @@ class _HomeScreenState extends State<HomeScreen> {
             'انتهت العملية مع خطأ. راجع السجل قبل إعادة المحاولة.';
       } else if (deletedCount > 0) {
         _lastCleanupMessage =
-            'أفاد المحرك بحذف $deletedCount ملف. الحجم المحرر غير مؤكد.';
+            'أفاد المحرك بحذف $deletedCount ملف. الحجم المحسوب للملفات المحذوفة: ${formatBytes(_lastDeletedBytes)}.';
       } else {
         _lastCleanupMessage =
             'لم يؤكد المحرك حذف أي ملفات.';
