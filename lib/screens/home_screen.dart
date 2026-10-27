@@ -189,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF10172A),
+      backgroundColor: const Color(0xFFF4F7FB),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -212,20 +212,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? const Center(child: Text('أعد الفحص أولًا لعرض الملفات.', style: TextStyle(color: Colors.white70)))
                     : ListView.separated(
                         itemCount: files.length,
-                        separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
+                        separatorBuilder: (_, __) => const Divider(color: Color(0xFFD6E0EB), height: 1),
                         itemBuilder: (_, index) {
                           final entry = files[index];
                           final segments = entry.key.split('/');
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.insert_drive_file_outlined, color: Color(0xFF00F2FE)),
+                            leading: const Icon(Icons.insert_drive_file_outlined, color: Color(0xFF087F8C), size: 28),
                             title: Text(segments.isEmpty ? entry.key : segments.last,
-                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                              style: const TextStyle(color: Color(0xFF172A45), fontSize: 17, fontWeight: FontWeight.w700),
                               maxLines: 2, overflow: TextOverflow.ellipsis),
                             subtitle: Text(entry.key,
-                              style: const TextStyle(color: Colors.white54, fontSize: 10),
+                              style: const TextStyle(color: Color(0xFF34465D), fontSize: 13, height: 1.35),
                               maxLines: 2, overflow: TextOverflow.ellipsis),
-                            trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF147D92), size: 28),
+                            trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF087F8C), size: 30),
                             onTap: () => _showSingleFileDetails(entry.key, entry.value),
                           );
                         },
@@ -1561,7 +1561,7 @@ class CategoryDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF10172A),
+      backgroundColor: const Color(0xFFF4F7FB),
       appBar: AppBar(
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF172A45),
@@ -1581,7 +1581,7 @@ class CategoryDetailsScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text('${files.length} ملف • راجع المسارات والأحجام قبل اتخاذ القرار', style: const TextStyle(color: Color(0xFF236B83), fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 6),
-                const Text('هذه الشاشة تعرض الملفات التي أمكن للتطبيق الوصول إليها فقط. لا يُحذف شيء من هنا مباشرة.', style: TextStyle(color: Color(0xFF43536A), fontSize: 15, height: 1.45)),
+                const Text('هذه الشاشة تعرض الملفات التي أمكن للتطبيق الوصول إليها فقط. لا يُحذف شيء من هنا مباشرة.', style: TextStyle(color: Color(0xFF26384F), fontSize: 16, height: 1.5)),
               ]),
             ),
             Expanded(
@@ -1608,9 +1608,9 @@ class CategoryDetailsScreen extends StatelessWidget {
                                 Text(size, style: const TextStyle(color: Color(0xFF147D92), fontSize: 14, fontWeight: FontWeight.w700)),
                               ]),
                               const SizedBox(height: 9),
-                              const Text('المسار الكامل', style: TextStyle(color: Color(0xFF52647A), fontSize: 13, fontWeight: FontWeight.bold)),
+                              const Text('المسار الكامل', style: TextStyle(color: Color(0xFF34465D), fontSize: 15, fontWeight: FontWeight.bold)),
                               const SizedBox(height: 4),
-                              SelectableText(file.path, style: const TextStyle(color: Color(0xFF26384F), fontSize: 14, height: 1.4)),
+                              SelectableText(file.path, style: const TextStyle(color: Color(0xFF172A45), fontSize: 15, height: 1.5)),
                               Align(alignment: Alignment.centerRight, child: TextButton.icon(
                                 onPressed: () => Clipboard.setData(ClipboardData(text: file.path)),
                                 icon: const Icon(Icons.copy_rounded, size: 19),
