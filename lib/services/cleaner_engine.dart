@@ -66,6 +66,22 @@ class CleanerEngine {
   /// الحجم الإجمالي للملفات المرشحة، بالبايت.
   int _totalBytes = 0;
 
+  // Read-only inventory of media files reachable in shared storage.
+  int _imageFiles = 0;
+  int _imageBytes = 0;
+  int _videoFiles = 0;
+  int _videoBytes = 0;
+  int _otherFiles = 0;
+  int _otherBytes = 0;
+
+  static const Set<String> _imageExtensions = <String>{
+    '.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.heic', '.heif',
+    '.avif', '.tif', '.tiff',
+  };
+  static const Set<String> _videoExtensions = <String>{
+    '.mp4', '.m4v', '.mov', '.3gp', '.mkv', '.webm', '.avi', '.mpeg', '.mpg',
+  };
+
   List<ScanItem> get results => List<ScanItem>.unmodifiable(_results);
 
   int get totalFiles => _totalFiles;
@@ -73,6 +89,13 @@ class CleanerEngine {
   int get totalBytes => _totalBytes;
 
   int get totalItems => _results.length;
+
+  int get imageFiles => _imageFiles;
+  int get imageBytes => _imageBytes;
+  int get videoFiles => _videoFiles;
+  int get videoBytes => _videoBytes;
+  int get otherFiles => _otherFiles;
+  int get otherBytes => _otherBytes;
 
   /// Returns the real files discovered for a category, without exposing the internal map.
   List<File> filesForCategory(String categoryId) =>
@@ -98,6 +121,12 @@ class CleanerEngine {
     _filesByCategory.clear();
     _totalFiles = 0;
     _totalBytes = 0;
+    _imageFiles = 0;
+    _imageBytes = 0;
+    _videoFiles = 0;
+    _videoBytes = 0;
+    _otherFiles = 0;
+    _otherBytes = 0;
 
     final Map<String, List<File>> groupedFiles =
         <String, List<File>>{
@@ -155,18 +184,32 @@ class CleanerEngine {
 
           visitedFiles++;
 
-          final String? categoryId = _classifyFile(entity.path);
-
-          if (categoryId == null) {
-            continue;
-          }
-
           int fileBytes;
-
           try {
             fileBytes = await entity.length();
           } on FileSystemException {
             // قد يتعذر الوصول إلى الملف أو يكون قد اختفى.
+            continue;
+          }
+
+          // Inventory is informational only; personal media is never selected for deletion.
+          final String lowerPath = entity.path.toLowerCase();
+          final String fileName = lowerPath.split('/').last;
+          final int dot = fileName.lastIndexOf('.');
+          final String extension = dot >= 0 ? fileName.substring(dot) : '';
+          if (_imageExtensions.contains(extension)) {
+            _imageFiles++;
+            _imageBytes += fileBytes;
+          } else if (_videoExtensions.contains(extension)) {
+            _videoFiles++;
+            _videoBytes += fileBytes;
+          } else {
+            _otherFiles++;
+            _otherBytes += fileBytes;
+          }
+
+          final String? categoryId = _classifyFile(entity.path);
+          if (categoryId == null) {
             continue;
           }
 
