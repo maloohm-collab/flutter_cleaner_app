@@ -20,9 +20,9 @@ class ScanResultCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: const Color(0xFF243650),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: const Color(0xFF6E8AAE), width: 1.2),
       ),
       child: Column(
         children: [
@@ -41,8 +41,8 @@ class ScanResultCard extends StatelessWidget {
               item.title,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: AppColors.textPrimary,
+                fontSize: 20,
+                color: Colors.white,
               ),
             ),
             subtitle: Text(
@@ -50,8 +50,8 @@ class ScanResultCard extends StatelessWidget {
                   ? '${item.files} ملف مكتشف\n${item.readableSize}\nيمكنك مراجعة المسارات قبل الحذف.'
                   : '${item.files} ملف مكتشف\n${item.readableSize}\nللعرض فقط؛ لا يمكن حذف هذه الفئة من التطبيق.',
               style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
+                color: const Color(0xFFE2EAF5),
+                fontSize: 15,
                 height: 1.5,
               ),
             ),
@@ -67,12 +67,12 @@ class ScanResultCard extends StatelessWidget {
                 onPressed: onDetails,
                 icon: const Icon(Icons.visibility_outlined, size: 21),
                 label: const Text(
-                  'إظهار تفاصيل الملفات التي تريد حذفها',
+                  'إظهار تفاصيل الملفات والمسارات قبل الحذف',
                   style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.field,
-                  foregroundColor: AppColors.primary,
+                  backgroundColor: const Color(0xFFDAF5FF),
+                  foregroundColor: const Color(0xFF12344A),
                   padding: const EdgeInsets.symmetric(vertical: 13),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
