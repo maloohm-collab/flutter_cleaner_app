@@ -264,7 +264,7 @@ class CleanerEngine {
       descriptionPath: 'category://thumbnail_files',
       files: groupedFiles['thumbnail_files']!,
       bytes: groupedBytes['thumbnail_files']!,
-      safeToDelete: false,
+      safeToDelete: true,
     );
 
     onProgress?.call(1.0);
