@@ -30,7 +30,7 @@ class ProgressRing extends StatelessWidget {
             child: CircularProgressIndicator(
               value: value,
               strokeWidth: 12,
-              backgroundColor: Colors.white12,
+              backgroundColor: const Color(0xFFD5DFEA),
               valueColor: const AlwaysStoppedAnimation(AppColors.primary),
             ),
           ),
@@ -42,7 +42,7 @@ class ProgressRing extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 6),
@@ -57,7 +57,7 @@ class ProgressRing extends StatelessWidget {
               Text(
                 subtitle,
                 style: const TextStyle(
-                  color: Colors.greenAccent,
+                  color: AppColors.success,
                   fontSize: 13,
                 ),
               ),
