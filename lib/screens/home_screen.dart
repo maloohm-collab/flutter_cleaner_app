@@ -899,7 +899,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-              if (_hasScanned) ...[
+              if (_hasScanned && scanItems.isEmpty) ...[
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -971,24 +971,23 @@ class _HomeScreenState extends State<HomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Detected Items',
+                                'العناصر المكتشفة',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'راجع العناصر وحدد ما تريد حذفه. '
-                                'لا تحدد ملفًا لا تعرف وظيفته.',
-                                style: TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 11,
-                                  height: 1.4,
+                              const SizedBox(height: 5),
+                              Text(
+                                'وجدنا ${scanItems.length} فئات مرشحة. افتح التفاصيل لمراجعة أسماء الملفات ومساراتها وأحجامها قبل الاختيار.',
+                                style: const TextStyle(
+                                  color: Color(0xFFE0E8F5),
+                                  fontSize: 14,
+                                  height: 1.45,
                                 ),
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 10),
                               Expanded(
                                 child: ListView.builder(
                                   itemCount: scanItems.length,
@@ -1044,13 +1043,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF090D1A),
+        backgroundColor: const Color(0xFF17243A),
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFF00F2FE),
-        unselectedItemColor: Colors.white38,
+        unselectedItemColor: Colors.white70,
         currentIndex: _currentIndex,
-        selectedFontSize: 10,
-        unselectedFontSize: 10,
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
