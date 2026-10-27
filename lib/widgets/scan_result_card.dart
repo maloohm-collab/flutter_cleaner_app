@@ -61,7 +61,7 @@ class ScanResultCard extends StatelessWidget {
         color: AppColors.card,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: CheckboxListTile(
+      child: Column(\n        children: [\n          CheckboxListTile(
         value: item.selected,
         onChanged: item.safeToDelete ? onChanged : null,
         activeColor: AppColors.primary,
