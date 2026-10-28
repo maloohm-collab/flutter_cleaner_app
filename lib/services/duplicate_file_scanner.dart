@@ -24,7 +24,7 @@ class DuplicateFileScanner {
       : _storageRoot = _normalizePath(storageRoot);
 
   static String _normalizePath(String path) =>
-      path.trim().replaceAll(r'\\', '/').replaceAll(RegExp(r'/+'), '/').replaceFirst(RegExp(r'/
+      path.trim().replaceAll(r'\\', '/').replaceAll(RegExp(r'/+'), '/');
 
   /// Finds exact duplicates among readable files under shared storage.
   ///
