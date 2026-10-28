@@ -1,6 +1,7 @@
 // Result card: readable contrast and explicit file inspection before cleanup.
 import 'package:flutter/material.dart';
 import 'package:flutter_cleaner_app/services/scan_item.dart';
+import '../utils/colors.dart';
 
 class ScanResultCard extends StatelessWidget {
   final ScanItem item;
@@ -17,15 +18,15 @@ class ScanResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color accent = item.id == 'thumbnail_files'
-        ? const Color(0xFF00C7E8)
-        : const Color(0xFF8AA8FF);
+        ? AppColors.primary
+        : AppColors.secondary;
     return Card(
       margin: const EdgeInsets.only(bottom: 14),
-      color: const Color(0xFF17243A),
-      elevation: 2,
+      color: item.selected ? const Color(0xFF1B3048) : AppColors.card,
+      elevation: item.selected ? 3 : 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: const BorderSide(color: Color(0xFF354963), width: 1.2),
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: item.selected ? AppColors.primary : AppColors.border, width: item.selected ? 1.6 : 1.0),
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
