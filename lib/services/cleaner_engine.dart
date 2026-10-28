@@ -307,6 +307,7 @@ class CleanerEngine {
       // اختيار المستخدم محفوظ في نسخة الواجهة؛ نتحقق هنا من أن
       // الفئة ما زالت ضمن نتائج الفحص الحالي ومسموح بمعالجتها.
       if (!requestedItem.selected ||
+          requestedItem.selectedPaths.isEmpty ||
           !requestedItem.safeToDelete ||
           !currentItem.safeToDelete ||
           requestedItem.path != currentItem.path ||
@@ -322,8 +323,18 @@ class CleanerEngine {
         continue;
       }
 
+      final Set<String> selectedPaths = requestedItem.selectedPaths
+          .map(_normalizePath)
+          .toSet();
+
       for (final File file in categoryFiles) {
         final String normalizedPath = _normalizePath(file.path);
+
+        // لا يكفي اختيار الفئة: يجب أن يكون هذا المسار بالذات
+        // ضمن قائمة الملفات التي راجعها المستخدم وحددها.
+        if (!selectedPaths.contains(normalizedPath)) {
+          continue;
+        }
 
         if (!_isAllowedPath(normalizedPath)) {
           continue;
