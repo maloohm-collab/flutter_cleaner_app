@@ -136,7 +136,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         ),
                         const SizedBox(height: 20),
                         const Text(
-                          'أدخل رقم الهاتف الذي تم ربط الاشتراك به، ورمز التفعيل الذي استلمته بعد الدفع.',
+                          'أدخل رقم هاتفك مع مفتاح الدولة ورمز التفعيل. التطبيق متاح للمستخدمين حول العالم.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.orangeAccent, fontSize: 12, height: 1.45),
                         ),
@@ -147,8 +147,8 @@ class _ActivationScreenState extends State<ActivationScreen> {
                           autocorrect: false,
                           style: const TextStyle(color: Colors.white),
                           decoration: InputDecoration(
-                            labelText: 'رقم الهاتف الأردني',
-                            hintText: '07XXXXXXXX',
+                            labelText: 'رقم الهاتف مع مفتاح الدولة',
+                            hintText: '+962780494789 أو +14155552671',
                             prefixIcon: const Icon(Icons.phone_android, color: AppColors.primary),
                             filled: true,
                             fillColor: AppColors.field,
@@ -203,7 +203,7 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         ),
                         const SizedBox(height: 20),
                         const Text(
-                          'للمساعدة في الاشتراك أو التفعيل، تواصل مع فريق الدعم عبر واتساب.',
+                          'اكتب رقمك الدولي مع مفتاح الدولة (مثل +962 للأردن أو +1 للولايات المتحدة). للمساعدة في الاشتراك أو التفعيل، تواصل مع فريق الدعم عبر واتساب.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.white54, fontSize: 12),
                         ),
