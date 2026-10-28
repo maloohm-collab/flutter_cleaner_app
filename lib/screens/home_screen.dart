@@ -708,7 +708,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Local File Cleanup • v1.0.0',
+                    'تنظيف الملفات محليًا • الإصدار 1.0.0',
                     style: TextStyle(
                       color: Color(0xFF00F2FE),
                       fontSize: 12,
@@ -736,7 +736,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.white70,
               ),
               title: const Text(
-                'About Engine',
+                'حول محرك الفحص',
                 style: TextStyle(color: Colors.white),
               ),
               onTap: () {
@@ -873,9 +873,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Expanded(child: _buildStatColumn('${_engine.imageFiles}', 'صور • ${formatBytes(_engine.imageBytes)}', const Color(0xFF64B5F6))),
-                          Expanded(child: _buildStatColumn('${_engine.videoFiles}', 'فيديو • ${formatBytes(_engine.videoBytes)}', const Color(0xFFFFB74D))),
-                          Expanded(child: _buildStatColumn('${_engine.otherFiles}', 'ملفات أخرى • ${formatBytes(_engine.otherBytes)}', AppColors.textSecondary)),
+                          _buildStatColumn('${_engine.imageFiles}', 'صور • ${formatBytes(_engine.imageBytes)}', const Color(0xFF64B5F6)),
+                          _buildStatColumn('${_engine.videoFiles}', 'فيديو • ${formatBytes(_engine.videoBytes)}', const Color(0xFFFFB74D)),
+                          _buildStatColumn('${_engine.otherFiles}', 'ملفات أخرى • ${formatBytes(_engine.otherBytes)}', AppColors.textSecondary),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -1050,7 +1050,7 @@ class _HomeScreenState extends State<HomeScreen> {
             : _hasScanned
                 ? 'ملف مرشح'
                 : _hasCleanupResult
-                    ? 'ملف حُذف حسب نتيجة المحرك'
+                    ? 'ملف/ملفات حُذفت وفق نتيجة المحرك'
                     : 'ابدأ الفحص لعرض النتائج';
 
     return Container(
@@ -1329,7 +1329,7 @@ class _HomeScreenState extends State<HomeScreen> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Colors.white38,
+              color: AppColors.textSecondary,
               fontSize: 10,
             ),
           ),
