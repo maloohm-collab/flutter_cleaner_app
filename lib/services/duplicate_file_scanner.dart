@@ -205,12 +205,13 @@ class DuplicateFileScanner {
     if (normalized.split('/').contains('..')) return false;
 
     final lower = normalized.toLowerCase();
-    if (lower == '$_storageRoot/android/data' ||
-        lower.startsWith('$_storageRoot/android/data/')) {
+    final lowerRoot = _storageRoot.toLowerCase();
+    if (lower == '$lowerRoot/android/data' ||
+        lower.startsWith('$lowerRoot/android/data/')) {
       return false;
     }
-    if (lower == '$_storageRoot/android/obb' ||
-        lower.startsWith('$_storageRoot/android/obb/')) {
+    if (lower == '$lowerRoot/android/obb' ||
+        lower.startsWith('$lowerRoot/android/obb/')) {
       return false;
     }
     return true;
