@@ -50,10 +50,12 @@ class ScanItem {
   /// والمسارات الفعلية داخل خدمة التنظيف.
   final bool safeToDelete;
 
-  /// يحدد ما إذا اختار المستخدم العنصر للتنظيف.
-  ///
-  /// القيمة الافتراضية false لمنع تحديد العناصر للحذف تلقائيًا.
+  /// يحدد ما إذا اختار المستخدم فئة تحتوي على ملفات محددة يدويًا.
   final bool selected;
+
+  /// المسارات الفردية التي اختارها المستخدم صراحةً داخل هذه الفئة.
+  /// لا يُسمح بحذف الفئة كاملة عند ترك هذه القائمة فارغة.
+  final List<String> selectedPaths;
 
   /// إنشاء عنصر جديد ضمن نتائج الفحص.
   const ScanItem({
@@ -64,6 +66,7 @@ class ScanItem {
     required this.bytes,
     this.safeToDelete = true,
     this.selected = false,
+    this.selectedPaths = const <String>[],
   });
 
   /// الحجم بالكيلوبايت.
@@ -105,6 +108,7 @@ class ScanItem {
     int? bytes,
     bool? safeToDelete,
     bool? selected,
+    List<String>? selectedPaths,
   }) {
     return ScanItem(
       id: id ?? this.id,
@@ -114,6 +118,7 @@ class ScanItem {
       bytes: bytes ?? this.bytes,
       safeToDelete: safeToDelete ?? this.safeToDelete,
       selected: selected ?? this.selected,
+      selectedPaths: selectedPaths ?? this.selectedPaths,
     );
   }
 }

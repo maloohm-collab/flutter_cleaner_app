@@ -44,7 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: AppColors.card,
         title: const Text('تسجيل الخروج', style: TextStyle(color: Colors.white)),
         content: const Text(
-          'سيتم إنهاء جلسة هذا الجهاز وإزالة حالة التفعيل المحلية. ستحتاج إلى التفعيل مجددًا للدخول.',
+          'سيتم إنهاء جلسة هذا الجهاز وإزالة حالة التفعيل المحلية. يمكنك العودة باستخدام رقم الهاتف نفسه ورمز التفعيل الأصلي ما دام الاشتراك ساريًا.',
           style: TextStyle(color: Colors.white70, height: 1.5),
         ),
         actions: [
@@ -65,6 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('subscription_expiry_ms');
     await prefs.remove('subscription_activated_at_ms');
+    await prefs.remove('subscription_phone');
     if (!mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
@@ -102,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _loadingSubscription
                         ? 'جارٍ التحقق...'
                         : active
-                            ? 'تفعيل محلي حتى ${_formatDate(_expiry!)} — لا يوجد تحقق دفع عبر الإنترنت'
+                            ? 'اشتراك تم التحقق منه حتى ${_formatDate(_expiry!)}'
                             : 'لا يوجد تفعيل محلي على هذا الجهاز',
                     style: TextStyle(color: active ? AppColors.success : AppColors.warning, height: 1.5),
                   ),
@@ -111,7 +112,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ListTile(
                   leading: const Icon(Icons.logout_rounded, color: AppColors.danger),
                   title: const Text('تسجيل الخروج', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                  subtitle: const Text('إنهاء التفعيل المحلي على هذا الجهاز', style: TextStyle(color: AppColors.textSecondary)),
+                  subtitle: const Text('إنهاء الجلسة المحلية على هذا الجهاز', style: TextStyle(color: AppColors.textSecondary)),
                   trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
                   onTap: _logout,
                 ),

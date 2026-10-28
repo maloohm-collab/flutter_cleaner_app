@@ -56,6 +56,7 @@ import '../utils/colors.dart';
 import '../widgets/animated_button.dart';
 import '../widgets/progress_ring.dart';
 import 'settings_screen.dart';
+import 'duplicate_files_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -184,6 +185,12 @@ class _HomeScreenState extends State<HomeScreen> {
     } on PlatformException { if (mounted) _showMessage('تعذر قراءة قائمة التطبيقات.'); }
   }
 
+  void _showDuplicateFiles() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const DuplicateFilesScreen()),
+    );
+  }
+
   void _showLargestFiles() {
     final files = _engine.largestAccessibleFiles;
     Navigator.of(context).push<void>(
@@ -208,11 +215,15 @@ class _HomeScreenState extends State<HomeScreen> {
           files: files,
           formatBytes: formatBytes,
           canSelectForDeletion: item.safeToDelete,
-          onSelectCategory: () {
+          initialSelectedPaths: item.selectedPaths,
+          onSelectFiles: (List<String> paths) {
             setState(() {
               final index = scanItems.indexWhere((candidate) => candidate.id == item.id);
               if (index >= 0) {
-                scanItems[index] = scanItems[index].copyWith(selected: true);
+                scanItems[index] = scanItems[index].copyWith(
+                  selected: paths.isNotEmpty,
+                  selectedPaths: List<String>.unmodifiable(paths),
+                );
               }
             });
             Navigator.of(context).pop();
@@ -394,7 +405,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final List<ScanItem> selectedItems = scanItems
         .where(
-          (item) => item.selected && item.safeToDelete,
+          (item) =>
+              item.selected &&
+              item.safeToDelete &&
+              item.selectedPaths.isNotEmpty,
         )
         .toList();
 
@@ -405,15 +419,27 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final int selectedBytes = selectedItems.fold<int>(
-      0,
-      (total, item) => total + item.bytes,
-    );
+    int selectedBytes = 0;
+    int selectedFileCount = 0;
+    for (final ScanItem item in selectedItems) {
+      final Set<String> paths = item.selectedPaths.toSet();
+      for (final File file in _engine.filesForCategory(item.id)) {
+        if (!paths.contains(file.path)) continue;
+        try {
+          if (await file.exists()) {
+            selectedBytes += await file.length();
+            selectedFileCount++;
+          }
+        } on FileSystemException {
+          // قد يختفي الملف بين الفحص والمراجعة؛ لا نحتسبه كتقدير مؤكد.
+        }
+      }
+    }
 
-    final int selectedFileCount = selectedItems.fold<int>(
-      0,
-      (sum, item) => sum + item.files,
-    );
+    if (selectedFileCount == 0) {
+      _showMessage('الملفات المحددة لم تعد متاحة. أعد الفحص ثم حاول مجددًا.');
+      return;
+    }
 
     final bool? shouldClean = await showDialog<bool>(
       context: context,
@@ -952,11 +978,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ScanResultCard(
                                   item: scanItems[index],
                                   onDetails: () => _showCategoryDetails(scanItems[index]),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      scanItems[index] = scanItems[index].copyWith(selected: value ?? false);
-                                    });
-                                  },
                                 ),
                             ],
                           )
@@ -1264,6 +1285,13 @@ class _HomeScreenState extends State<HomeScreen> {
             color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w800,
           )),
         ),
+        _buildWideTool(
+          Icons.copy_all_rounded,
+          'اكتشاف الملفات المكررة',
+          'فحص قراءة فقط مع مقارنة المحتوى وعرض المسارات دون حذف تلقائي.',
+          _showDuplicateFiles,
+        ),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(child: _buildInteractiveTool(
@@ -1338,6 +1366,46 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildWideTool(
+    IconData icon,
+    String title,
+    String subtitle,
+    VoidCallback onTap,
+  ) {
+    return Material(
+      color: AppColors.card,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(11),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(.10),
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4)),
+            ])),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.primary),
+          ]),
+        ),
+      ),
+    );
+  }
+
   Widget _buildInteractiveTool(
     IconData icon,
     String label,
@@ -1381,12 +1449,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
 /// شاشة مستقلة وواضحة لمراجعة كل ملف ومساره قبل اختيار التنظيف.
-class CategoryDetailsScreen extends StatelessWidget {
+class CategoryDetailsScreen extends StatefulWidget {
   final String title;
   final List<File> files;
   final String Function(int) formatBytes;
   final bool canSelectForDeletion;
-  final VoidCallback onSelectCategory;
+  final List<String> initialSelectedPaths;
+  final ValueChanged<List<String>> onSelectFiles;
 
   const CategoryDetailsScreen({
     super.key,
@@ -1394,18 +1463,35 @@ class CategoryDetailsScreen extends StatelessWidget {
     required this.files,
     required this.formatBytes,
     required this.canSelectForDeletion,
-    required this.onSelectCategory,
+    this.initialSelectedPaths = const <String>[],
+    required this.onSelectFiles,
   });
+
+  @override
+  State<CategoryDetailsScreen> createState() => _CategoryDetailsScreenState();
+}
+
+class _CategoryDetailsScreenState extends State<CategoryDetailsScreen> {
+  final Set<String> _selectedPaths = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPaths.addAll(widget.initialSelectedPaths);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FB),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF172A45),
-        elevation: 1,
-        title: const Text('تفاصيل الملفات', style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.card,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        title: const Text(
+          'مراجعة الملفات',
+          style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+        ),
       ),
       body: SafeArea(
         child: Column(
@@ -1413,64 +1499,173 @@ class CategoryDetailsScreen extends StatelessWidget {
             Container(
               width: double.infinity,
               margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFD8E2EE))),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: const TextStyle(color: Color(0xFF172A45), fontSize: 23, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text('${files.length} ملف • راجع المسارات والأحجام قبل اتخاذ القرار', style: const TextStyle(color: Color(0xFF236B83), fontSize: 16, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 6),
-                const Text('هذه الشاشة تعرض الملفات التي أمكن للتطبيق الوصول إليها فقط. لا يُحذف شيء من هنا مباشرة.', style: TextStyle(color: Color(0xFF26384F), fontSize: 16, height: 1.5)),
-              ]),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.title,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${widget.files.length} ملف مكتشف • ${_selectedPaths.length} محدد',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'راجع اسم كل ملف ومساره وحجمه، وحدد الملفات التي تريد حذفها فقط. لن يُحذف شيء قبل تأكيد العملية في الشاشة التالية.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
             Expanded(
-              child: files.isEmpty
-                ? const Center(child: Text('لا توجد ملفات متاحة للعرض.', style: TextStyle(color: Color(0xFF43536A), fontSize: 17)))
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    itemCount: files.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 9),
-                    itemBuilder: (_, index) {
-                      final file = files[index];
-                      return FutureBuilder<int>(
-                        future: file.length(),
-                        builder: (context, snapshot) {
-                          final size = snapshot.hasError ? 'الحجم غير متاح' : snapshot.hasData ? formatBytes(snapshot.data!) : 'جارٍ حساب الحجم…';
-                          return Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFD8E2EE))),
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Row(children: [
-                                const Icon(Icons.insert_drive_file_outlined, color: Color(0xFF147D92), size: 26),
-                                const SizedBox(width: 9),
-                                Expanded(child: Text(file.uri.pathSegments.isEmpty ? file.path : file.uri.pathSegments.last, style: const TextStyle(color: Color(0xFF172A45), fontSize: 17, fontWeight: FontWeight.bold))),
-                                Text(size, style: const TextStyle(color: Color(0xFF147D92), fontSize: 14, fontWeight: FontWeight.w700)),
-                              ]),
-                              const SizedBox(height: 9),
-                              const Text('المسار الكامل', style: TextStyle(color: Color(0xFF34465D), fontSize: 15, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 4),
-                              SelectableText(file.path, style: const TextStyle(color: Color(0xFF172A45), fontSize: 15, height: 1.5)),
-                              Align(alignment: Alignment.centerRight, child: TextButton.icon(
-                                onPressed: () => Clipboard.setData(ClipboardData(text: file.path)),
-                                icon: const Icon(Icons.copy_rounded, size: 19),
-                                label: const Text('نسخ المسار', style: TextStyle(fontSize: 15)),
-                              )),
-                            ]),
-                          );
-                        },
-                      );
-                    },
-                  ),
+              child: widget.files.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'لا توجد ملفات متاحة للعرض.',
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 17),
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      itemCount: widget.files.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 9),
+                      itemBuilder: (context, index) {
+                        final File file = widget.files[index];
+                        final bool selected = _selectedPaths.contains(file.path);
+                        return FutureBuilder<int>(
+                          future: file.length(),
+                          builder: (context, snapshot) {
+                            final String size = snapshot.hasError
+                                ? 'الحجم غير متاح'
+                                : snapshot.hasData
+                                    ? widget.formatBytes(snapshot.data!)
+                                    : 'جارٍ حساب الحجم…';
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.card,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: selected ? AppColors.primary : AppColors.border,
+                                  width: selected ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Checkbox(
+                                    value: selected,
+                                    activeColor: AppColors.primary,
+                                    onChanged: widget.canSelectForDeletion
+                                        ? (value) {
+                                            setState(() {
+                                              if (value == true) {
+                                                _selectedPaths.add(file.path);
+                                              } else {
+                                                _selectedPaths.remove(file.path);
+                                              }
+                                            });
+                                          }
+                                        : null,
+                                  ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          file.uri.pathSegments.isEmpty
+                                              ? file.path
+                                              : file.uri.pathSegments.last,
+                                          style: const TextStyle(
+                                            color: AppColors.textPrimary,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          'الحجم: $size',
+                                          style: const TextStyle(
+                                            color: AppColors.primary,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 7),
+                                        SelectableText(
+                                          file.path,
+                                          style: const TextStyle(
+                                            color: AppColors.textSecondary,
+                                            fontSize: 13,
+                                            height: 1.45,
+                                          ),
+                                        ),
+                                        Align(
+                                          alignment: Alignment.centerRight,
+                                          child: TextButton.icon(
+                                            onPressed: () => Clipboard.setData(
+                                              ClipboardData(text: file.path),
+                                            ),
+                                            icon: const Icon(Icons.copy_rounded, size: 18),
+                                            label: const Text('نسخ المسار'),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
             ),
-            if (canSelectForDeletion)
+            if (widget.canSelectForDeletion)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
-                child: SizedBox(width: double.infinity, child: ElevatedButton.icon(
-                  onPressed: onSelectCategory,
-                  icon: const Icon(Icons.check_circle_outline_rounded),
-                  label: const Text('اختيار هذه الفئة للحذف', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF147D92), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                )),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _selectedPaths.isEmpty
+                        ? null
+                        : () => widget.onSelectFiles(_selectedPaths.toList()),
+                    icon: const Icon(Icons.check_circle_outline_rounded),
+                    label: Text(
+                      'اعتماد ${_selectedPaths.length} ملف محدد',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.background,
+                      disabledBackgroundColor: AppColors.border,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
               ),
           ],
         ),

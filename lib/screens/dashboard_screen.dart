@@ -366,16 +366,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                ...scanItems.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
+                ...scanItems.map((item) {
                   return ScanResultCard(
                     item: item,
-                    onChanged: (value) {
-                      setState(() {
-                        scanItems[index] = item.copyWith(selected: value ?? true);
-                      });
-                    },
+                    // هذه الشاشة القديمة لا تملك شاشة اختيار المسارات الفردية.
+                    // نبقي تفاصيل الاختيار معطلة هنا حتى لا نوحي بإمكانية حذف
+                    // فئة كاملة دون مراجعة كل ملف؛ التدفق الكامل موجود في HomeScreen.
+                    onDetails: null,
                   );
                 }),
               ],

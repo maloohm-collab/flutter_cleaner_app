@@ -1,19 +1,16 @@
 import 'dart:io';
 
 class DeviceInfoService {
-  Future<DeviceStatus> load() async {
-
-    final stat = await Directory('/storage/emulated/0').stat();
-
+  Future<DeviceStatus> load() {
     // سيتم استبدال هذه القيم لاحقًا بقيم حقيقية
-    return DeviceStatus(
+    return Future.value(DeviceStatus(
       androidVersion: Platform.operatingSystemVersion,
       storageUsed: 0,
       storageFree: 0,
       batteryLevel: 0,
       deviceHealth: 97,
       lastUpdate: DateTime.now(),
-    );
+    ));
   }
 }
 
