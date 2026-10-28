@@ -23,7 +23,10 @@ function hash(value) {
 exports.redeemActivationCode = onCall(async (request) => {
   const phone = normalizePhone(request.data?.phone);
   const code = String(request.data?.code || "").trim().toUpperCase();
-  if (!/^[A-F0-9]{12}$/.test(code)) {
+  // Accept generated 12-character hex codes and the agreed legacy code format.
+  // A format match alone never activates a subscription: the hashed code must
+  // exist as an unused record in Firestore.
+  if (!/^(?:[A-F0-9]{12}|AICLEANER0000)$/.test(code)) {
     throw new HttpsError("invalid-argument", "Invalid activation code.");
   }
 
@@ -54,6 +57,14 @@ exports.redeemActivationCode = onCall(async (request) => {
     const codeSnap = await tx.get(codeRef);
     if (codeSnap.exists) {
       const codeData = codeSnap.data();
+      if (codeData.allowedPhoneHash && codeData.allowedPhoneHash !== phoneHash) {
+        tx.set(attemptRef, {
+          count: count + 1,
+          windowStartMs: count === 0 ? nowMs : windowStart,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        return { success: false };
+      }
 
       // Allow the same customer to restore activation after a local logout.
       // A redeemed code can never be transferred to a different phone number.
