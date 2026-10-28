@@ -69,6 +69,17 @@ void main() {
       );
     });
 
+    test('surfaces APK installers as a review-only category', () {
+      expect(
+        CleanupRules.classify('/storage/emulated/0/Download/installer.apk'),
+        'apk_files',
+      );
+      expect(
+        CleanupRules.classify('/storage/emulated/0/Download/installer.APK'),
+        'apk_files',
+      );
+    });
+
     test('never classifies candidates inside Android private folders', () {
       expect(
         CleanupRules.classify('/storage/emulated/0/Android/data/app/cache.tmp'),
