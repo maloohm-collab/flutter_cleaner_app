@@ -143,11 +143,13 @@ class CleanerEngine {
         <String, List<File>>{
       'temporary_files': <File>[],
       'thumbnail_files': <File>[],
+      'apk_files': <File>[],
     };
 
     final Map<String, int> groupedBytes = <String, int>{
       'temporary_files': 0,
       'thumbnail_files': 0,
+      'apk_files': 0,
     };
 
     final Directory root = Directory(_storageRoot);
@@ -262,6 +264,16 @@ class CleanerEngine {
       files: groupedFiles['thumbnail_files']!,
       bytes: groupedBytes['thumbnail_files']!,
       safeToDelete: true,
+    );
+
+    // APKs are visible for inventory/review only. Deletion stays disabled.
+    _addCategory(
+      id: 'apk_files',
+      title: 'ملفات تثبيت التطبيقات (APK)',
+      descriptionPath: 'category://apk_files',
+      files: groupedFiles['apk_files']!,
+      bytes: groupedBytes['apk_files']!,
+      safeToDelete: false,
     );
 
     onProgress?.call(1.0);
