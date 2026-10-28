@@ -44,7 +44,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: AppColors.card,
         title: const Text('تسجيل الخروج', style: TextStyle(color: Colors.white)),
         content: const Text(
-          'سيتم إنهاء جلسة هذا الجهاز وإزالة حالة التفعيل المحلية. ستحتاج إلى التفعيل مجددًا للدخول.',
+          'سيتم إنهاء جلسة هذا الجهاز وإزالة حالة التفعيل المحلية. يمكنك العودة باستخدام رقم الهاتف نفسه ورمز التفعيل الأصلي ما دام الاشتراك ساريًا.',
           style: TextStyle(color: Colors.white70, height: 1.5),
         ),
         actions: [
