@@ -76,6 +76,12 @@ class CleanupRules {
       return 'thumbnail_files';
     }
 
+    // APK files are surfaced for review only. They may be legitimate
+    // installers saved by the user, so this rule never authorizes deletion.
+    if (extension == '.apk') {
+      return 'apk_files';
+    }
+
     if (temporaryExtensions.any(fileName.endsWith)) {
       return 'temporary_files';
     }
