@@ -36,15 +36,13 @@
 import 'dart:io';
 
 import 'scan_item.dart';
+import 'cleanup_rules.dart';
 
 class CleanerEngine {
   CleanerEngine();
 
-  /// امتدادات الملفات المؤقتة التي يبحث عنها المحرك.
-  static const List<String> junkExtensions = <String>[
-    '.tmp',
-    '.temp',
-  ];
+  /// القواعد المحافظة المعتمدة لتصنيف الملفات المرشحة.
+  static const List<String> junkExtensions = CleanupRules.temporaryExtensions;
 
   /// جذر التخزين المشترك على أجهزة Android.
   static const String _storageRoot = '/storage/emulated/0';
@@ -217,8 +215,7 @@ class CleanerEngine {
           } else if (_videoExtensions.contains(extension)) {
             _videoFiles++;
             _videoBytes += fileBytes;
-          } else {
-            _otherFiles++;
+          } else {            _otherFiles++;
             _otherBytes += fileBytes;
           }
 
@@ -311,7 +308,10 @@ class CleanerEngine {
       // الفئة ما زالت ضمن نتائج الفحص الحالي ومسموح بمعالجتها.
       if (!requestedItem.selected ||
           !requestedItem.safeToDelete ||
-          !currentItem.safeToDelete) {
+          !currentItem.safeToDelete ||
+          requestedItem.path != currentItem.path ||
+          requestedItem.files != currentItem.files ||
+          requestedItem.bytes != currentItem.bytes) {
         continue;
       }
 
@@ -340,8 +340,16 @@ class CleanerEngine {
             continue;
           }
 
-          // إعادة التحقق مباشرة قبل الحذف.
-          if (!_isAllowedPath(file.path)) {
+          // لا نحذف رابطًا رمزيًا، حتى لو كان يشير إلى ملف داخل المسار المسموح.
+          final FileSystemEntityType entityType =
+              await FileSystemEntity.type(file.path, followLinks: false);
+          if (entityType != FileSystemEntityType.file) {
+            continue;
+          }
+
+          // إعادة التحقق من قواعد المسار ونوع العنصر مباشرة قبل الحذف.
+          if (!_isAllowedPath(file.path) ||
+              CleanupRules.classify(file.path) != currentItem.id) {
             continue;
           }
 
@@ -364,24 +372,9 @@ class CleanerEngine {
     return deletedFiles;
   }
 
-  /// يصنف الملف ضمن الفئات المدعومة فقط.
-  String? _classifyFile(String filePath) {
-    final String normalized = _normalizePath(filePath);
-    final String lowerPath = normalized.toLowerCase();
-
-    if (_isThumbnailPath(lowerPath)) {
-      return 'thumbnail_files';
-    }
-
-    final String fileName =
-        lowerPath.split('/').isEmpty ? lowerPath : lowerPath.split('/').last;
-
-    if (junkExtensions.any(fileName.endsWith)) {
-      return 'temporary_files';
-    }
-
-    return null;
-  }
+  /// يصنف الملف وفق قواعد محافظة موحدة وقابلة للاختبار.
+  String? _classifyFile(String filePath) =>
+      CleanupRules.classify(_normalizePath(filePath));
 
   /// ينشئ نتيجة الفئة بعد تجميع الملفات المكتشفة.
   void _addCategory({
@@ -414,44 +407,8 @@ class CleanerEngine {
   }
 
   /// يتحقق من أن المسار يقع داخل جذر التخزين المسموح.
-  ///
-  /// ويستبعد Android/data و Android/obb صراحةً.
-  bool _isAllowedPath(String path) {
-    final String normalized = _normalizePath(path);
-    final String lowerPath = normalized.toLowerCase();
-    final String lowerRoot = _storageRoot.toLowerCase();
-
-    if (lowerPath != lowerRoot &&
-        !lowerPath.startsWith('$lowerRoot/')) {
-      return false;
-    }
-
-    final List<String> segments = lowerPath.split('/');
-
-    for (int i = 0; i < segments.length - 1; i++) {
-      if (segments[i] == 'android' &&
-          (segments[i + 1] == 'data' ||
-              segments[i + 1] == 'obb')) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /// يتحقق من وجود مجلد صور مصغرة في المسار.
-  bool _isThumbnailPath(String lowerPath) {
-    final List<String> segments = lowerPath.split('/');
-
-    return segments.any(
-      (String segment) =>
-          segment == '.thumbnails' ||
-          segment == 'thumbnails' ||
-          segment == 'thumbs' ||
-          segment.contains('thumbnail'),
-    ) || lowerPath.split('/').last.contains('thumbnail') ||
-        lowerPath.split('/').last.contains('thumb_');
-  }
+  bool _isAllowedPath(String path) =>
+      CleanupRules.isAllowedPath(_normalizePath(path));
 
   /// يوحد فواصل المسارات ويزيل الفواصل المكررة.
   String _normalizePath(String path) {
