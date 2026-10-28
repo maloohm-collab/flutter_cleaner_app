@@ -6,12 +6,20 @@ admin.initializeApp();
 const db = admin.firestore();
 
 function normalizePhone(input) {
-  let value = String(input || "").replace(/[^0-9+]/g, "");
+  let value = String(input || "").trim().replace(/[\\s().-]/g, "");
   if (value.startsWith("+")) value = value.slice(1);
   if (value.startsWith("00")) value = value.slice(2);
-  if (value.startsWith("0")) value = "962" + value.slice(1);
-  if (!/^9627[789][0-9]{7}$/.test(value)) {
-    throw new HttpsError("invalid-argument", "Enter a valid Jordanian mobile number.");
+  // Keep support for Jordanian local mobile numbers such as 0780494789.
+  // Other countries must enter the number with its international country code.
+  if (/^0[0-9]{9}$/.test(value)) {
+    value = "962" + value.slice(1);
+  }
+  // Accept international numbers in E.164 digit form (8–15 digits).
+  if (!/^[1-9][0-9]{7,14}$/.test(value)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "Enter a valid phone number with the international country code, e.g. +962780494789."
+    );
   }
   return value;
 }
