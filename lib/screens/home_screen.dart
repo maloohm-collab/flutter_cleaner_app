@@ -1035,97 +1035,58 @@ class _HomeScreenState extends State<HomeScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildDynamicHealthCard() {
-    String mainText = '--';
-    String description = 'Scan Required';
-    Color textColor = const Color(0xFF52647A);
-
-    Gradient cardGradient = LinearGradient(
-      colors: [
-        const Color(0xFFFFFFFF),
-        const Color(0xFFF5F8FC),
-      ],
-    );
-
-    if (_isCleaning) {
-      mainText = 'DELETE';
-      description = 'Processing...';
-      textColor = const Color(0xFF00F2FE);
-
-      cardGradient = LinearGradient(
-        colors: [
-          const Color(0xFFDDF5F7),
-          const Color(0xFFEAF0FF),
-        ],
-      );
-    } else if (state.scanning || _isStartingScan) {
-      mainText = 'SCAN';
-      description = 'Analyzing files...';
-      textColor = const Color(0xFFFFD700);
-    } else if (_hasScanned) {
-      mainText = '${state.totalFiles}';
-      description = 'Candidate files';
-      textColor = const Color(0xFF00F2FE);
-
-      cardGradient = LinearGradient(
-        colors: [
-          const Color(0xFFE4F5F8),
-          const Color(0xFFF0F5FF),
-        ],
-      );
-    } else if (_hasCleanupResult) {
-      mainText = '$_lastDeletedFiles';
-      description = 'Files deleted';
-      textColor = _lastDeletedFiles > 0
-          ? const Color(0xFF00E676)
-          : Colors.orangeAccent;
-    }
+    final bool busy = _isCleaning || state.scanning || _isStartingScan;
+    final String value = _isCleaning
+        ? '...'
+        : state.scanning || _isStartingScan
+            ? '${(state.progress * 100).round()}%'
+            : _hasScanned
+                ? '${state.totalFiles}'
+                : _hasCleanupResult
+                    ? '$_lastDeletedFiles'
+                    : '—';
+    final String caption = _isCleaning
+        ? 'جارٍ التنظيف'
+        : state.scanning || _isStartingScan
+            ? 'تقدم الفحص'
+            : _hasScanned
+                ? 'ملف مرشح'
+                : _hasCleanupResult
+                    ? 'ملف حُذف حسب نتيجة المحرك'
+                    : 'ابدأ الفحص لعرض النتائج';
 
     return Container(
-      padding: const EdgeInsets.all(12),
-      height: 90,
+      padding: const EdgeInsets.all(14),
+      constraints: const BoxConstraints(minHeight: 104),
       decoration: BoxDecoration(
-        gradient: cardGradient,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFB9C8D9),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF172C45), Color(0xFF122033)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
-            'FILES FOUND',
-            style: TextStyle(
-              color: const Color(0xFF52647A),
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            mainText,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: const Color(0xFF172A45),
-              fontSize: 26,
-              fontWeight: FontWeight.w900,
-              height: 1.1,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            description,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: textColor,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Row(children: [
+            const Icon(Icons.folder_copy_outlined, color: AppColors.primary, size: 18),
+            const SizedBox(width: 7),
+            Expanded(child: Text(
+              _hasCleanupResult && !_hasScanned ? 'نتيجة آخر تنظيف' : 'نتائج الفحص',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w700),
+            )),
+          ]),
+          const SizedBox(height: 8),
+          Text(value, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: busy ? AppColors.warning : AppColors.textPrimary, fontSize: 26, height: 1, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 6),
+          Text(caption, maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, height: 1.3)),
         ],
       ),
     );
@@ -1136,94 +1097,64 @@ class _HomeScreenState extends State<HomeScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildDynamicStatusCard() {
+    final bool busy = _isCleaning || state.scanning || _isStartingScan;
     final String statusTitle = _isCleaning
-        ? 'FILE CLEANUP'
-        : 'SCAN STATUS';
-
-    final String statusSubtitle = _isCleaning
-        ? 'Deleting selected files'
+        ? 'حالة التنظيف'
         : state.scanning || _isStartingScan
-            ? 'Scanning shared storage'
+            ? 'الفحص جارٍ'
             : _hasScanned
-                ? 'Review candidates'
+                ? 'الفحص مكتمل'
                 : _hasCleanupResult
-                    ? 'Last cleanup finished'
-                    : 'Waiting for scan';
+                    ? 'آخر عملية'
+                    : 'جاهز للعمل';
+    final String statusSubtitle = _isCleaning
+        ? 'حذف العناصر التي اخترتها'
+        : state.scanning || _isStartingScan
+            ? 'فحص الملفات المتاحة'
+            : _hasScanned
+                ? 'راجع النتائج قبل الحذف'
+                : _hasCleanupResult
+                    ? 'يمكنك إعادة الفحص للتحقق'
+                    : 'ابدأ بفحص الملفات';
 
     return Container(
-      padding: const EdgeInsets.all(12),
-      height: 90,
+      padding: const EdgeInsets.all(14),
+      constraints: const BoxConstraints(minHeight: 104),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFB9C8D9),
-        ),
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Icon(
-                _isCleaning
-                    ? Icons.delete_outline_rounded
-                    : Icons.radar_outlined,
-                color: const Color(0xFF087F9B),
-                size: 18,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  statusTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: const Color(0xFF52647A),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            state.currentTask,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: const Color(0xFF172A45),
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+          Row(children: [
+            Icon(
+              _isCleaning ? Icons.cleaning_services_rounded : Icons.radar_rounded,
+              color: busy ? AppColors.warning : AppColors.success,
+              size: 18,
             ),
-          ),
-          const SizedBox(height: 6),
+            const SizedBox(width: 7),
+            Expanded(child: Text(statusTitle, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w700))),
+          ]),
+          const SizedBox(height: 9),
+          Text(state.currentTask, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
-              value: state.progress.clamp(0.0, 1.0).toDouble(),
-              backgroundColor: const Color(0xFFD5DFEA),
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF00F2FE),
-              ),
-              minHeight: 4,
+              value: busy ? state.progress.clamp(0.0, 1.0).toDouble() : (_hasScanned ? 1 : 0),
+              backgroundColor: const Color(0xFF2A3A52),
+              valueColor: AlwaysStoppedAnimation<Color>(busy ? AppColors.warning : AppColors.primary),
+              minHeight: 5,
             ),
           ),
-          const SizedBox(height: 2),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Text(
-              statusSubtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: const Color(0xFF52647A),
-                fontSize: 11,
-              ),
-            ),
-          ),
+          const SizedBox(height: 5),
+          Text(statusSubtitle, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
         ],
       ),
     );
