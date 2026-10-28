@@ -46,11 +46,18 @@ class ProgressRing extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 11,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    height: 1.15,
+                  ),
                 ),
               ),
               const SizedBox(height: 2),
@@ -58,7 +65,7 @@ class ProgressRing extends StatelessWidget {
                 subtitle,
                 style: const TextStyle(
                   color: AppColors.success,
-                  fontSize: 13,
+                  fontSize: 11,
                 ),
               ),
             ],
