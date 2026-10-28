@@ -366,9 +366,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                ...scanItems.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
+                ...scanItems.map((item) {
                   return ScanResultCard(
                     item: item,
                     // هذه الشاشة القديمة لا تملك شاشة اختيار المسارات الفردية.
