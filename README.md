@@ -12,9 +12,9 @@
    Select the new project and Android. This generates lib/firebase_options.dart.
 5. Enable Cloud Firestore and App Check in Firebase Console.
 6. Deploy the deny-by-default rules in firebase/firestore.rules.
-7. Deploy callable functions from `firebase/functions` (see commands below). The app requires both `redeemActivationCode` and `checkSubscription` to be deployed.
-8. For normal paid subscriptions, manually verify each 2 JOD payment and issue a unique code with `npm run generate-code`.
-9. The agreed legacy code `AICLEANER0000` is registered separately, one time, for phone `0780494789` only. Run `node register-agreed-code.js` from `firebase/functions` on a trusted computer after Firebase Admin credentials are configured. It cannot activate another phone.
+7. Deploy callable functions from `firebase/functions`. The app requires both `redeemActivationCode` and `checkSubscription` to be deployed.
+8. The current shared code is `AICLEANER0000`: it can be used for different valid Jordanian mobile numbers. Each number gets its own 30-day subscription record. Anyone who knows this shared code can activate a subscription, so change the server-side code when you decide to rotate it.
+9. The alternative generated-code flow remains available for unique, one-time codes.
 
 ## Activation model
 - WhatsApp: +962780494789 (local 0780494789).
@@ -22,18 +22,9 @@
 - Trusted backend redeems the code atomically once, binds it to a normalized phone, and sets expiry to 30 days.
 - Client-side activation is intentionally blocked until Firebase config and backend deployment are completed.
 
-## Deploy activation backend (trusted computer only)
-```sh
-cd firebase/functions
-npm install
-# Register the agreed code once, if it has not already been registered:
-node register-agreed-code.js
-# Deploy both callable functions:
-cd ../..
-firebase deploy --only functions
-```
+## Deploy activation backend
 
-The fixed code is not accepted by format alone: its hashed Firestore record must exist, be unused, and match the registered phone. The code can be redeemed once and the subscription lasts 30 days. Do not put Firebase service-account credentials in GitHub or the APK. Deployment must be performed by someone with access to the Firebase project.
+The Cloud Functions must be deployed by an account with access to the Firebase project. The shared code is validated by the backend; it is not consumed after one phone uses it. Each phone number has an independent subscription expiry.
 
 ## Build
 ```sh
