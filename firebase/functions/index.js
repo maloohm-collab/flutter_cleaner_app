@@ -52,13 +52,37 @@ exports.redeemActivationCode = onCall(async (request) => {
     }
 
     const codeSnap = await tx.get(codeRef);
+    if (codeSnap.exists) {
+      const codeData = codeSnap.data();
+
+      // Allow the same customer to restore activation after a local logout.
+      // A redeemed code can never be transferred to a different phone number.
+      if (codeData.status === "redeemed" && codeData.phoneHash === phoneHash) {
+        const subSnap = await tx.get(subRef);
+        const subData = subSnap.exists ? subSnap.data() : {};
+        const currentExpiry = subData.expiresAt;
+        if (
+          subData.status === "active" &&
+          currentExpiry &&
+          typeof currentExpiry.toDate === "function" &&
+          currentExpiry.toDate().getTime() > nowMs
+        ) {
+          return {
+            success: true,
+            expiresAt: currentExpiry.toDate().toISOString(),
+            restored: true
+          };
+        }
+      }
+    }
+
     if (!codeSnap.exists || codeSnap.data().status !== "unused") {
       tx.set(attemptRef, {
         count: count + 1,
         windowStartMs: count === 0 ? nowMs : windowStart,
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
-      return false;
+      return { success: false };
     }
 
     const now = admin.firestore.Timestamp.now();
@@ -76,18 +100,26 @@ exports.redeemActivationCode = onCall(async (request) => {
       source: "manual_whatsapp_payment"
     });
     tx.delete(attemptRef);
-    return true;
+    return {
+      success: true,
+      expiresAt: expiresAt.toDate().toISOString(),
+      restored: false
+    };
   });
 
-  if (!redeemed) {
+  if (!redeemed.success) {
     const latestAttempt = await attemptRef.get();
     if (latestAttempt.exists && Number(latestAttempt.data().count || 0) >= 10) {
       throw new HttpsError("resource-exhausted", "Too many attempts. Please try again in one hour.");
     }
-    throw new HttpsError("failed-precondition", "Code is invalid or already used.");
+    throw new HttpsError("failed-precondition", "Code is invalid, expired, or already used for another phone.");
   }
 
-  return { success: true, expiresAt: expiresAt.toDate().toISOString() };
+  return {
+    success: true,
+    expiresAt: redeemed.expiresAt,
+    restored: redeemed.restored === true
+  };
 });
 
 exports.checkSubscription = onCall(async (request) => {
