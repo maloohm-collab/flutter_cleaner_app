@@ -19,18 +19,18 @@ class ProgressRing extends StatelessWidget {
     final value = progress.clamp(0.0, 1.0);
 
     return SizedBox(
-      width: 180,
-      height: 180,
+      width: 148,
+      height: 148,
       child: Stack(
         alignment: Alignment.center,
         children: [
           SizedBox(
-            width: 180,
-            height: 180,
+            width: 148,
+            height: 148,
             child: CircularProgressIndicator(
               value: value,
-              strokeWidth: 12,
-              backgroundColor: const Color(0xFFD5DFEA),
+              strokeWidth: 9,
+              backgroundColor: const Color(0xFF26364F),
               valueColor: const AlwaysStoppedAnimation(AppColors.primary),
             ),
           ),
@@ -40,7 +40,7 @@ class ProgressRing extends StatelessWidget {
               Text(
                 "${(value * 100).toInt()}%",
                 style: const TextStyle(
-                  fontSize: 34,
+                  fontSize: 30,
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
@@ -50,7 +50,7 @@ class ProgressRing extends StatelessWidget {
                 title,
                 style: const TextStyle(
                   color: AppColors.textSecondary,
-                  fontSize: 16,
+                  fontSize: 11,
                 ),
               ),
               const SizedBox(height: 2),
