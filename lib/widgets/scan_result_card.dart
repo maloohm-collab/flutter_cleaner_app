@@ -5,13 +5,11 @@ import '../utils/colors.dart';
 
 class ScanResultCard extends StatelessWidget {
   final ScanItem item;
-  final ValueChanged<bool?> onChanged;
   final VoidCallback? onDetails;
 
   const ScanResultCard({
     super.key,
     required this.item,
-    required this.onChanged,
     this.onDetails,
   });
 
@@ -105,20 +103,23 @@ class ScanResultCard extends StatelessWidget {
             ),
             if (item.safeToDelete) ...[
               const SizedBox(height: 8),
-              CheckboxListTile(
-                value: item.selected,
-                onChanged: onChanged,
-                activeColor: accent,
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                title: const Text('تحديد هذه الفئة للحذف',
-                  style: TextStyle(
-                    color: Color(0xFFF7FAFF),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  )),
-                subtitle: const Text('سيطلب التطبيق تأكيدًا قبل بدء الحذف.',
-                  style: TextStyle(color: Color(0xFFB2C1D5), fontSize: 14)),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF101A2C),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Text(
+                  'الملفات المحددة يدويًا: ${item.selectedPaths.length} من ${item.files}. افتح التفاصيل لاختيار كل ملف على حدة.',
+                  style: const TextStyle(
+                    color: Color(0xFFC3D0E2),
+                    fontSize: 14,
+                    height: 1.4,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ],
