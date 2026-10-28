@@ -39,13 +39,14 @@ import 'scan_item.dart';
 import 'cleanup_rules.dart';
 
 class CleanerEngine {
-  CleanerEngine();
+  CleanerEngine({String storageRoot = CleanupRules.defaultStorageRoot})
+      : _storageRoot = storageRoot;
 
   /// القواعد المحافظة المعتمدة لتصنيف الملفات المرشحة.
   static const List<String> junkExtensions = CleanupRules.temporaryExtensions;
 
   /// جذر التخزين المشترك على أجهزة Android.
-  static const String _storageRoot = '/storage/emulated/0';
+  final String _storageRoot;
 
   /// نتائج آخر عملية فحص.
   List<ScanItem> _results = <ScanItem>[];
@@ -397,7 +398,7 @@ class CleanerEngine {
 
   /// يصنف الملف وفق قواعد محافظة موحدة وقابلة للاختبار.
   String? _classifyFile(String filePath) =>
-      CleanupRules.classify(_normalizePath(filePath));
+      CleanupRules.classify(_normalizePath(filePath), storageRoot: _storageRoot);
 
   /// ينشئ نتيجة الفئة بعد تجميع الملفات المكتشفة.
   void _addCategory({
@@ -431,7 +432,7 @@ class CleanerEngine {
 
   /// يتحقق من أن المسار يقع داخل جذر التخزين المسموح.
   bool _isAllowedPath(String path) =>
-      CleanupRules.isAllowedPath(_normalizePath(path));
+      CleanupRules.isAllowedPath(_normalizePath(path), storageRoot: _storageRoot);
 
   /// يوحد فواصل المسارات ويزيل الفواصل المكررة.
   String _normalizePath(String path) {
