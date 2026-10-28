@@ -84,7 +84,7 @@ class CleanupRules {
   }
 
   static String _normalize(String path) {
-    String normalized = path.trim().replaceAll(r'\\', '/');
+    String normalized = path.trim().replaceAll(String.fromCharCode(92), '/');
     while (normalized.contains('//')) {
       normalized = normalized.replaceAll('//', '/');
     }
