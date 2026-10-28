@@ -84,7 +84,9 @@ class _ActivationScreenState extends State<ActivationScreen> {
           ? 'تم تجاوز عدد المحاولات. حاول بعد ساعة.'
           : error.code == 'failed-precondition'
               ? 'رمز التفعيل غير صحيح أو سبق استخدامه.'
-              : 'تعذر التحقق من الاشتراك. تحقق من الاتصال وحاول مجددًا.';
+              : error.code == 'invalid-argument'
+                  ? 'تحقق من رقم الهاتف ومفتاح الدولة، مثل +962 للأردن أو +1 للولايات المتحدة.'
+                  : 'تعذر التحقق من الاشتراك. تحقق من الاتصال وحاول مجددًا.';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } catch (_) {
       if (!mounted) return;
