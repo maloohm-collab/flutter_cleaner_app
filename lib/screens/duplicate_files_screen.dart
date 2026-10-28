@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_cleaner_app/services/duplicate_file_scanner.dart';
 import 'package:flutter_cleaner_app/utils/colors.dart';
 
@@ -202,9 +203,11 @@ class _DuplicateFilesScreenState extends State<DuplicateFilesScreen> {
                                       trailing: IconButton(
                                         tooltip: 'نسخ المسار',
                                         icon: const Icon(Icons.copy_rounded, color: AppColors.primary),
-                                        onPressed: () {
+                                        onPressed: () async {
+                                          await Clipboard.setData(ClipboardData(text: group.paths[i]));
+                                          if (!context.mounted) return;
                                           ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('انسخ المسار من النص القابل للتحديد إذا لم يعمل النسخ التلقائي.')),
+                                            const SnackBar(content: Text('تم نسخ مسار الملف.')),
                                           );
                                         },
                                       ),
