@@ -670,16 +670,16 @@ class _HomeScreenState extends State<HomeScreen> {
             : 0;
 
     final String filesLabel = _hasScanned
-        ? 'Candidates'
+        ? 'ملفات مرشحة'
         : showLastCleanup
-            ? 'Files Deleted'
-            : 'Candidates';
+            ? 'ملفات حُذفت'
+            : 'ملفات مرشحة';
 
     final String bytesLabel = _hasScanned
-        ? 'Candidate Size'
+        ? 'الحجم المرصود'
         : showLastCleanup
-            ? 'Selected Size'
-            : 'Candidate Size';
+            ? 'الحجم المحدد'
+            : 'الحجم المحدد';
 
     return Scaffold(
       key: _scaffoldKey,
@@ -719,7 +719,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.settings_outlined, color: Colors.white70),
-              title: const Text('Settings', style: TextStyle(color: Colors.white)),
+              title: const Text('الإعدادات', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -811,11 +811,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   horizontal: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFFCFDCE9),
-                  ),
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -823,7 +821,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildStatColumn(
                       '$displayedFiles',
                       filesLabel,
-                      const Color(0xFF087F9B),
+                      AppColors.primary,
                     ),
                     Container(
                       width: 1,
@@ -833,12 +831,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     _buildStatColumn(
                       formatBytes(displayedBytes),
                       bytesLabel,
-                      const Color(0xFF6D28A8),
+                      const Color(0xFF9A8CFF),
                     ),
                     Container(
                       width: 1,
                       height: 22,
-                      color: const Color(0xFFD5DFEA),
+                      color: AppColors.border,
                     ),
                     _buildStatColumn(
                       state.scanning
@@ -846,12 +844,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           : _isCleaning
                               ? '...'
                               : _hasScanned
-                                  ? 'Ready'
+                                  ? 'جاهز'
                                   : showLastCleanup
-                                      ? 'Done'
-                                      : '--',
-                      'Operation',
-                      const Color(0xFF16734A),
+                                      ? 'تم'
+                                      : '—',
+                      'الحالة',
+                      AppColors.success,
                     ),
                   ],
                 ),
@@ -869,20 +867,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'STORAGE INVENTORY • ACCESSIBLE FILES',
+                        'جرد الملفات المتاحة',
                         style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Expanded(child: _buildStatColumn('${_engine.imageFiles}', 'Photos • ${formatBytes(_engine.imageBytes)}', const Color(0xFF64B5F6))),
-                          Expanded(child: _buildStatColumn('${_engine.videoFiles}', 'Videos • ${formatBytes(_engine.videoBytes)}', const Color(0xFFFFB74D))),
-                          Expanded(child: _buildStatColumn('${_engine.otherFiles}', 'Other files • ${formatBytes(_engine.otherBytes)}', const Color(0xFF34445B))),
+                          Expanded(child: _buildStatColumn('${_engine.imageFiles}', 'صور • ${formatBytes(_engine.imageBytes)}', const Color(0xFF64B5F6))),
+                          Expanded(child: _buildStatColumn('${_engine.videoFiles}', 'فيديو • ${formatBytes(_engine.videoBytes)}', const Color(0xFFFFB74D))),
+                          Expanded(child: _buildStatColumn('${_engine.otherFiles}', 'ملفات أخرى • ${formatBytes(_engine.otherBytes)}', AppColors.textSecondary)),
                         ],
                       ),
                       const SizedBox(height: 6),
                       const Text(
-                        'Inventory is limited to files Android allowed the app to read; it is not the phone’s complete storage meter.',
+                        'يعرض هذا الجرد الملفات التي سمح Android للتطبيق بقراءتها، ولا يمثل كامل مساحة الهاتف.',
                         style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.4),
                       ),
                       Align(
@@ -890,7 +888,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: TextButton.icon(
                           onPressed: _showLargestFiles,
                           icon: const Icon(Icons.storage_rounded, size: 16),
-                          label: const Text('View largest files'),
+                          label: const Text('عرض أكبر الملفات'),
                           style: TextButton.styleFrom(foregroundColor: AppColors.primary),
                         ),
                       ),
@@ -967,14 +965,14 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
               AnimatedButton(
                 title: _isCleaning
-                    ? 'DELETING SELECTED FILES...'
+                    ? 'جارٍ تنظيف الملفات...'
                     : state.scanning || _isStartingScan
-                        ? 'SCANNING FILES...'
+                        ? 'جارٍ فحص الملفات...'
                         : state.analysisFinished
-                            ? 'CLEAN SELECTED FILES'
+                            ? 'تنظيف الملفات المحددة'
                             : _hasScanned
-                                ? 'SCAN COMPLETE'
-                                : 'START FILE SCAN',
+                                ? 'اكتمل الفحص'
+                                : 'ابدأ فحص الملفات',
                 icon: _isCleaning || state.scanning || _isStartingScan
                     ? Icons.hourglass_top_rounded
                     : state.analysisFinished
@@ -1019,11 +1017,11 @@ class _HomeScreenState extends State<HomeScreen> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.grid_view_rounded, size: 20),
-            label: 'Home',
+            label: 'الرئيسية',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined, size: 20),
-            label: 'Settings',
+            label: 'الإعدادات',
           ),
         ],
       ),
@@ -1215,7 +1213,7 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Operation Logs',
+              'سجل العمليات',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 13,
@@ -1232,7 +1230,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _showOperationLog();
               },
               child: const Text(
-                'View log',
+                'عرض السجل',
                 style: TextStyle(
                   color: Color(0xFF4FACFE),
                   fontSize: 12,
@@ -1303,7 +1301,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 10),
         const Text(
-          'Quick Actions',
+          'أدوات سريعة',
           style: TextStyle(
             color: Colors.white,
             fontSize: 13,
@@ -1316,10 +1314,10 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _buildInteractiveTool(
               Icons.cleaning_services_outlined,
-              'Deep Clean',
+              'تنظيف المحدد',
               performCleaning,
             ),
-            _buildInteractiveTool(Icons.apps_outlined, 'App Cache', _showAppCacheReview),
+            _buildInteractiveTool(Icons.apps_outlined, 'ذاكرة التطبيقات', _showAppCacheReview),
             _buildInteractiveTool(
               Icons.settings_outlined,
               'Settings',
