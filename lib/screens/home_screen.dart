@@ -420,12 +420,10 @@ class _HomeScreenState extends State<HomeScreen> {
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: const Color(0xFFFFFFFF),
+          backgroundColor: AppColors.card,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: const Color(0xFFD3DEEA),
-            ),
+            borderRadius: BorderRadius.circular(18),
+            side: const BorderSide(color: AppColors.border),
           ),
           title: const Row(
             children: [
@@ -439,7 +437,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Text(
                   'تأكيد حذف الملفات',
                   style: TextStyle(
-                    color: const Color(0xFF172A45),
+                    color: AppColors.textPrimary,
                     fontSize: 19,
                     fontWeight: FontWeight.bold,
                   ),
@@ -453,7 +451,7 @@ class _HomeScreenState extends State<HomeScreen> {
             'الحجم التقديري: ${formatBytes(selectedBytes)}\n\n'
             'قد يتعذر حذف بعض الملفات. لا تتابع إذا لم تكن متأكدًا من العناصر المحددة.',
             style: const TextStyle(
-              color: const Color(0xFF26384F),
+              color: AppColors.textSecondary,
               fontSize: 16,
               height: 1.55,
             ),
@@ -687,7 +685,7 @@ class _HomeScreenState extends State<HomeScreen> {
       key: _scaffoldKey,
       backgroundColor: AppColors.background,
       drawer: Drawer(
-        backgroundColor: const Color(0xFF090D1A),
+        backgroundColor: AppColors.background,
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
@@ -757,9 +755,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         leading: IconButton(
-          icon: const Icon(Icons.menu, color: Color(0xFF172A45)),
+          icon: const Icon(Icons.menu_rounded, color: AppColors.textPrimary),
           onPressed: () {
             _scaffoldKey.currentState?.openDrawer();
           },
@@ -768,7 +766,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text(
           'AI OPTIMIZER',
           style: TextStyle(
-            color: Color(0xFF172A45),
+            color: AppColors.textPrimary,
             fontSize: 19,
             fontWeight: FontWeight.bold,
             letterSpacing: 1,
@@ -830,7 +828,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Container(
                       width: 1,
                       height: 22,
-                      color: const Color(0xFFD5DFEA),
+                      color: AppColors.border,
                     ),
                     _buildStatColumn(
                       formatBytes(displayedBytes),
@@ -863,9 +861,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFFFFF),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFB9C8D9), width: 1.2),
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border, width: 1.2),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -998,9 +996,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF17243A),
+        backgroundColor: AppColors.card,
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF22D3C5),
+        selectedItemColor: AppColors.primary,
         unselectedItemColor: Colors.white70,
         currentIndex: _currentIndex,
         selectedFontSize: 12,
