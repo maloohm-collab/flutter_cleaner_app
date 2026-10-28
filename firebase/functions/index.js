@@ -20,17 +20,43 @@ function hash(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+// Shared activation code agreed for the current release. It activates the
+// phone supplied by each customer independently; it is intentionally reusable
+// across different phone numbers until the owner changes this server-side value.
+// Note: anyone who knows this shared code can activate a 30-day subscription.
+const SHARED_ACTIVATION_CODE = "AICLEANER0000";
+
 exports.redeemActivationCode = onCall(async (request) => {
   const phone = normalizePhone(request.data?.phone);
   const code = String(request.data?.code || "").trim().toUpperCase();
   // Accept generated 12-character hex codes and the agreed legacy code format.
   // A format match alone never activates a subscription: the hashed code must
   // exist as an unused record in Firestore.
-  if (!/^(?:[A-F0-9]{12}|AICLEANER0000)$/.test(code)) {
-    throw new HttpsError("invalid-argument", "Invalid activation code.");
+  const phoneHash = hash(phone);
+
+  // Reusable shared code: create/refresh a separate 30-day subscription for
+  // every valid phone number. It is not consumed by the first customer.
+  if (code === SHARED_ACTIVATION_CODE) {
+    const sharedSubRef = db.collection("subscriptions").doc(phoneHash);
+    const now = admin.firestore.Timestamp.now();
+    const expiresAt = admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    );
+    await db.runTransaction(async (tx) => {
+      tx.set(sharedSubRef, {
+        phoneHash,
+        status: "active",
+        activatedAt: now,
+        expiresAt,
+        source: "shared_activation_code"
+      });
+    });
+    return { success: true, expiresAt: expiresAt.toDate().toISOString(), restored: false };
   }
 
-  const phoneHash = hash(phone);
+  if (!/^[A-F0-9]{12}$/.test(code)) {
+    throw new HttpsError("invalid-argument", "Invalid activation code.");
+  }
   const codeRef = db.collection("activationCodes").doc(hash(code));
   const subRef = db.collection("subscriptions").doc(phoneHash);
   const attemptRef = db.collection("activationAttempts").doc(phoneHash);
