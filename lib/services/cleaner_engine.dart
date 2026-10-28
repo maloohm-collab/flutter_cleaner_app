@@ -1,75 +1,49 @@
-
 /// ===============================================================
 /// Project      : AI Cleaner
 /// File         : lib/services/cleaner_engine.dart
-/// Version      : 1.2.1
-/// Last Updated : 2026-10-10
+/// Version      : 1.2.2
+/// Last Updated : 2026-10-29
 ///
 /// Purpose:
 /// محرك فحص التخزين وتصنيف الملفات المرشحة للتنظيف،
 /// مع التحقق من المسارات والعناصر قبل الحذف.
 ///
-/// Changelog:
-/// - تصحيح استيراد ScanItem إلى المسار الصحيح.
-/// - منع معالجة العناصر غير الموجودة في نتائج الفحص الحالي.
-/// - التحقق من اختيار العنصر وصلاحيته قبل الحذف.
-/// - استبعاد Android/data و Android/obb.
-/// - جعل العناصر غير محددة افتراضيًا.
-/// - تحسين التعامل مع أخطاء الوصول إلى الملفات.
-///
 /// Safety Notes:
 /// - نتائج الفحص مرشحات وليست ضمانًا بأن الملفات غير مهمة.
-/// - لا يتم حذف الملفات إلا بعد اختيار فئتها صراحةً.
-/// - لا يحاول هذا المحرك مسح البيانات الخاصة بالتطبيقات الأخرى.
-/// - يتطلب الوصول إلى التخزين الأذونات المناسبة على Android.
-///
-/// Compatibility:
-/// - يعتمد على lib/services/scan_item.dart.
-/// - يحافظ على واجهتي scan() و clean() المستخدمتين في HomeScreen.
+/// - لا يتم حذف الملفات إلا بعد اختيار مساراتها صراحةً.
+/// - لا يحاول هذا المحرك مسح Android/data أو Android/obb.
 /// - لم يُجرَ بناء Flutter أو flutter analyze لهذا الملف.
 ///
 /// Dependencies:
 /// - dart:io
 /// - scan_item.dart
+/// - cleanup_rules.dart
 /// ===============================================================
 
 import 'dart:io';
 
-import 'scan_item.dart';
 import 'cleanup_rules.dart';
+import 'scan_item.dart';
 
 class CleanerEngine {
   CleanerEngine({String storageRoot = CleanupRules.defaultStorageRoot})
       : _storageRoot = storageRoot;
 
-  /// القواعد المحافظة المعتمدة لتصنيف الملفات المرشحة.
   static const List<String> junkExtensions = CleanupRules.temporaryExtensions;
 
-  /// جذر التخزين المشترك على أجهزة Android.
   final String _storageRoot;
-
-  /// نتائج آخر عملية فحص.
   List<ScanItem> _results = <ScanItem>[];
+  final Map<String, List<File>> _filesByCategory = <String, List<File>>{};
 
-  /// الملفات المكتشفة لكل فئة في آخر عملية فحص.
-  ///
-  /// المفاتيح هي معرفات الفئات، والقيم هي الملفات الفعلية
-  /// التي اكتشفها الفحص، وليست المسارات المعروضة في الواجهة.
-  final Map<String, List<File>> _filesByCategory =
-      <String, List<File>>{};
-
-  /// الملفات التي جرى فحصها في آخر عملية فحص.
   int _totalFiles = 0;
-
-  /// الحجم الإجمالي للملفات المرشحة، بالبايت.
   int _totalBytes = 0;
-
-  /// Bytes belonging only to files successfully deleted in the latest cleanup.
   int _lastDeletedBytes = 0;
 
   int get lastDeletedBytes => _lastDeletedBytes;
+  int get totalFiles => _totalFiles;
+  int get totalBytes => _totalBytes;
+  int get totalItems => _results.length;
 
-  // Read-only inventory of media files reachable in shared storage.
   int _imageFiles = 0;
   int _imageBytes = 0;
   int _videoFiles = 0;
@@ -78,7 +52,6 @@ class CleanerEngine {
   int _otherBytes = 0;
   final Map<String, int> _accessibleFileSizes = <String, int>{};
 
-  /// Largest readable files from the most recent scan, for inspection only.
   List<MapEntry<String, int>> get largestAccessibleFiles {
     final entries = _accessibleFileSizes.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -86,21 +59,32 @@ class CleanerEngine {
   }
 
   static const Set<String> _imageExtensions = <String>{
-    '.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.heic', '.heif',
-    '.avif', '.tif', '.tiff',
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+    '.gif',
+    '.bmp',
+    '.heic',
+    '.heif',
+    '.avif',
+    '.tif',
+    '.tiff',
   };
+
   static const Set<String> _videoExtensions = <String>{
-    '.mp4', '.m4v', '.mov', '.3gp', '.mkv', '.webm', '.avi', '.mpeg', '.mpg',
+    '.mp4',
+    '.m4v',
+    '.mov',
+    '.3gp',
+    '.mkv',
+    '.webm',
+    '.avi',
+    '.mpeg',
+    '.mpg',
   };
 
   List<ScanItem> get results => List<ScanItem>.unmodifiable(_results);
-
-  int get totalFiles => _totalFiles;
-
-  int get totalBytes => _totalBytes;
-
-  int get totalItems => _results.length;
-
   int get imageFiles => _imageFiles;
   int get imageBytes => _imageBytes;
   int get videoFiles => _videoFiles;
@@ -108,22 +92,11 @@ class CleanerEngine {
   int get otherFiles => _otherFiles;
   int get otherBytes => _otherBytes;
 
-  /// Returns the real files discovered for a category, without exposing the internal map.
   List<File> filesForCategory(String categoryId) =>
       List<File>.unmodifiable(_filesByCategory[categoryId] ?? const <File>[]);
 
-  /// يعيد مجلد التخزين الذي سيبدأ منه الفحص.
-  List<Directory> getScanDirectories() {
-    return <Directory>[Directory(_storageRoot)];
-  }
+  List<Directory> getScanDirectories() => <Directory>[Directory(_storageRoot)];
 
-  /// يفحص التخزين ويصنف الملفات المرشحة للتنظيف.
-  ///
-  /// onStatus: رسالة توضح المرحلة الحالية.
-  /// onProgress: نسبة تقدم تقريبية بين 0.0 و 1.0.
-  ///
-  /// ملاحظة:
-  /// النسبة تقريبية؛ عدد الملفات النهائي غير معروف قبل اكتمال الفحص.
   Future<List<ScanItem>> scan({
     Function(String)? onStatus,
     Function(double)? onProgress,
@@ -140,13 +113,11 @@ class CleanerEngine {
     _otherBytes = 0;
     _accessibleFileSizes.clear();
 
-    final Map<String, List<File>> groupedFiles =
-        <String, List<File>>{
+    final Map<String, List<File>> groupedFiles = <String, List<File>>{
       'temporary_files': <File>[],
       'thumbnail_files': <File>[],
       'apk_files': <File>[],
     };
-
     final Map<String, int> groupedBytes = <String, int>{
       'temporary_files': 0,
       'thumbnail_files': 0,
@@ -154,7 +125,6 @@ class CleanerEngine {
     };
 
     final Directory root = Directory(_storageRoot);
-
     if (!await root.exists()) {
       onStatus?.call('مجلد التخزين غير متاح.');
       onProgress?.call(1.0);
@@ -163,93 +133,68 @@ class CleanerEngine {
 
     final List<Directory> queue = <Directory>[root];
     int visitedDirectories = 0;
-    int visitedFiles = 0;
-
     onStatus?.call('جارٍ فحص الملفات...');
 
     while (queue.isNotEmpty) {
       final Directory currentDirectory = queue.removeLast();
-
-      if (!_isAllowedPath(currentDirectory.path)) {
-        continue;
-      }
+      if (!_isAllowedPath(currentDirectory.path)) continue;
 
       try {
-        await for (final FileSystemEntity entity
-            in currentDirectory.list(
+        await for (final FileSystemEntity entity in currentDirectory.list(
           recursive: false,
           followLinks: false,
         )) {
-          // نتجاهل الروابط الرمزية لتجنب تتبع مسارات غير متوقعة.
-          if (entity is Link) {
-            continue;
-          }
+          if (entity is Link) continue;
 
           if (entity is Directory) {
-            if (_isAllowedPath(entity.path)) {
-              queue.add(entity);
-            }
+            if (_isAllowedPath(entity.path)) queue.add(entity);
             continue;
           }
 
-          if (entity is! File || !_isAllowedPath(entity.path)) {
-            continue;
-          }
-
-          visitedFiles++;
+          if (entity is! File || !_isAllowedPath(entity.path)) continue;
 
           int fileBytes;
           try {
             fileBytes = await entity.length();
           } on FileSystemException {
-            // قد يتعذر الوصول إلى الملف أو يكون قد اختفى.
             continue;
           }
 
-          // Inventory is informational only; personal files are never selected for deletion here.
           _accessibleFileSizes[entity.path] = fileBytes;
-          final String lowerPath = entity.path.toLowerCase();
-          final String fileName = lowerPath.split('/').last;
+          final String fileName = entity.path.toLowerCase().split('/').last;
           final int dot = fileName.lastIndexOf('.');
           final String extension = dot >= 0 ? fileName.substring(dot) : '';
+
           if (_imageExtensions.contains(extension)) {
             _imageFiles++;
             _imageBytes += fileBytes;
           } else if (_videoExtensions.contains(extension)) {
             _videoFiles++;
             _videoBytes += fileBytes;
-          } else {            _otherFiles++;
+          } else {
+            _otherFiles++;
             _otherBytes += fileBytes;
           }
 
           final String? categoryId = _classifyFile(entity.path);
-          if (categoryId == null) {
-            continue;
-          }
+          if (categoryId == null) continue;
 
           groupedFiles[categoryId]!.add(entity);
-          groupedBytes[categoryId] =
-              groupedBytes[categoryId]! + fileBytes;
-
+          groupedBytes[categoryId] = groupedBytes[categoryId]! + fileBytes;
           _totalFiles++;
           _totalBytes += fileBytes;
         }
       } on FileSystemException {
-        // نتجاوز المجلدات التي لا تسمح المنصة بقراءتها.
-        // لا يعني ذلك أن الفحص شمل كل ملفات الجهاز.
+        // بعض المجلدات قد لا تكون قابلة للقراءة؛ لا ندعي اكتمال الفحص.
       }
 
       visitedDirectories++;
-
-      // تقدم تقريبي يمنع إظهار 100% قبل انتهاء الفحص.
       final double progress =
           1.0 - (1.0 / (visitedDirectories + queue.length + 1));
-
       onProgress?.call(progress.clamp(0.0, 0.95));
     }
 
     onStatus?.call('جارٍ تجهيز نتائج الفحص...');
-
     _addCategory(
       id: 'temporary_files',
       title: 'الملفات المؤقتة',
@@ -257,17 +202,13 @@ class CleanerEngine {
       files: groupedFiles['temporary_files']!,
       bytes: groupedBytes['temporary_files']!,
     );
-
     _addCategory(
       id: 'thumbnail_files',
       title: 'ملفات الصور المصغرة',
       descriptionPath: 'category://thumbnail_files',
       files: groupedFiles['thumbnail_files']!,
       bytes: groupedBytes['thumbnail_files']!,
-      safeToDelete: true,
     );
-
-    // APKs are visible for inventory/review only. Deletion stays disabled.
     _addCategory(
       id: 'apk_files',
       title: 'ملفات تثبيت التطبيقات (APK)',
@@ -279,47 +220,30 @@ class CleanerEngine {
 
     onProgress?.call(1.0);
     onStatus?.call('اكتمل الفحص.');
-
     return List<ScanItem>.unmodifiable(_results);
   }
 
-  /// يحذف الملفات التابعة للفئات المختارة فقط.
-  ///
-  /// يعيد عدد الملفات التي حُذفت بنجاح.
-  ///
-  /// يجب أن تكون العناصر المرسلة من نتائج الفحص الحالي،
-  /// وأن تكون محددة وقابلة للمعالجة.
   Future<int> clean({
     required List<ScanItem> selected,
     Function(String)? onStatus,
   }) async {
+    _lastDeletedBytes = 0;
     if (selected.isEmpty) {
       onStatus?.call('لم يتم اختيار أي فئة للتنظيف.');
       return 0;
     }
 
     int deletedFiles = 0;
-    _lastDeletedBytes = 0;
     final Set<String> processedPaths = <String>{};
-
-    // نتحقق من النتائج الحالية بدل الاعتماد على بيانات الواجهة وحدها.
-    final Map<String, ScanItem> currentItems =
-        <String, ScanItem>{
+    final Map<String, ScanItem> currentItems = <String, ScanItem>{
       for (final ScanItem item in _results) item.id: item,
     };
 
     onStatus?.call('جارٍ التحقق من الملفات المحددة...');
-
     for (final ScanItem requestedItem in selected) {
       final ScanItem? currentItem = currentItems[requestedItem.id];
-
-      if (currentItem == null) {
-        continue;
-      }
-
-      // اختيار المستخدم محفوظ في نسخة الواجهة؛ نتحقق هنا من أن
-      // الفئة ما زالت ضمن نتائج الفحص الحالي ومسموح بمعالجتها.
-      if (!requestedItem.selected ||
+      if (currentItem == null ||
+          !requestedItem.selected ||
           requestedItem.selectedPaths.isEmpty ||
           !requestedItem.safeToDelete ||
           !currentItem.safeToDelete ||
@@ -329,51 +253,33 @@ class CleanerEngine {
         continue;
       }
 
-      final List<File>? categoryFiles =
-          _filesByCategory[currentItem.id];
+      final List<File>? categoryFiles = _filesByCategory[currentItem.id];
+      if (categoryFiles == null) continue;
 
-      if (categoryFiles == null) {
-        continue;
-      }
-
-      final Set<String> selectedPaths = requestedItem.selectedPaths
-          .map(_normalizePath)
-          .toSet();
+      final Set<String> selectedPaths =
+          requestedItem.selectedPaths.map(_normalizePath).toSet();
 
       for (final File file in categoryFiles) {
         final String normalizedPath = _normalizePath(file.path);
-
-        // لا يكفي اختيار الفئة: يجب أن يكون هذا المسار بالذات
-        // ضمن قائمة الملفات التي راجعها المستخدم وحددها.
-        if (!selectedPaths.contains(normalizedPath)) {
-          continue;
-        }
-
-        if (!_isAllowedPath(normalizedPath)) {
-          continue;
-        }
-
-        // يمنع تكرار معالجة المسار نفسه دون تغيير حالة الأحرف
-        // في المسار الفعلي الذي سيُستخدم للحذف.
-        if (!processedPaths.add(normalizedPath)) {
+        if (!selectedPaths.contains(normalizedPath) ||
+            !_isAllowedPath(normalizedPath) ||
+            !processedPaths.add(normalizedPath)) {
           continue;
         }
 
         try {
-          if (!await file.exists()) {
-            continue;
-          }
-
-          // لا نحذف رابطًا رمزيًا، حتى لو كان يشير إلى ملف داخل المسار المسموح.
+          if (!await file.exists()) continue;
           final FileSystemEntityType entityType =
               await FileSystemEntity.type(file.path, followLinks: false);
-          if (entityType != FileSystemEntityType.file) {
-            continue;
-          }
+          if (entityType != FileSystemEntityType.file) continue;
 
-          // إعادة التحقق من قواعد المسار ونوع العنصر مباشرة قبل الحذف.
+          // Use the same injected root as scanning and test environments.
           if (!_isAllowedPath(file.path) ||
-              CleanupRules.classify(file.path) != currentItem.id) {
+              CleanupRules.classify(
+                    file.path,
+                    storageRoot: _storageRoot,
+                  ) !=
+                  currentItem.id) {
             continue;
           }
 
@@ -382,25 +288,23 @@ class CleanerEngine {
           deletedFiles++;
           _lastDeletedBytes += bytesBeforeDelete;
         } on FileSystemException {
-          // نتجاوز الملف الذي تعذر حذفه ونواصل بقية الملفات.
+          // تجاوز الملف المتعذر ومتابعة بقية الملفات.
         }
       }
     }
 
-    // تُمسح نتائج الفحص السابقة بعد انتهاء عملية التنظيف؛
-    // يجب إجراء فحص جديد لتحديث القائمة والأحجام.
+    // Results are stale after cleanup; the next operation must scan again.
     _results = <ScanItem>[];
     _filesByCategory.clear();
-
     onStatus?.call('انتهت عملية التنظيف.');
     return deletedFiles;
   }
 
-  /// يصنف الملف وفق قواعد محافظة موحدة وقابلة للاختبار.
-  String? _classifyFile(String filePath) =>
-      CleanupRules.classify(_normalizePath(filePath), storageRoot: _storageRoot);
+  String? _classifyFile(String filePath) => CleanupRules.classify(
+        _normalizePath(filePath),
+        storageRoot: _storageRoot,
+      );
 
-  /// ينشئ نتيجة الفئة بعد تجميع الملفات المكتشفة.
   void _addCategory({
     required String id,
     required String title,
@@ -409,12 +313,8 @@ class CleanerEngine {
     required int bytes,
     bool safeToDelete = true,
   }) {
-    if (files.isEmpty) {
-      return;
-    }
-
+    if (files.isEmpty) return;
     _filesByCategory[id] = List<File>.unmodifiable(files);
-
     _results.add(
       ScanItem(
         id: id,
@@ -422,64 +322,43 @@ class CleanerEngine {
         path: descriptionPath,
         files: files.length,
         bytes: bytes,
-        // تعني أن الفئة مسموح بعرضها للاختيار،
-        // ولا تعني أن كل ملف فيها مضمون الأمان للحذف.
         safeToDelete: safeToDelete,
         selected: false,
       ),
     );
   }
 
-  /// يتحقق من أن المسار يقع داخل جذر التخزين المسموح.
-  bool _isAllowedPath(String path) =>
-      CleanupRules.isAllowedPath(_normalizePath(path), storageRoot: _storageRoot);
+  bool _isAllowedPath(String path) => CleanupRules.isAllowedPath(
+        _normalizePath(path),
+        storageRoot: _storageRoot,
+      );
 
-  /// يوحد فواصل المسارات ويزيل الفواصل المكررة.
   String _normalizePath(String path) {
-    String normalized = path.replaceAll(r'\', '/');
-
+    String normalized = path.replaceAll(String.fromCharCode(92), '/');
     while (normalized.contains('//')) {
       normalized = normalized.replaceAll('//', '/');
     }
-
     if (normalized.length > 1 && normalized.endsWith('/')) {
       normalized = normalized.substring(0, normalized.length - 1);
     }
-
     return normalized;
   }
 
-  /// يحسب مؤشرًا تقريبيًا بناءً على عدد الملفات المرشحة.
-  ///
-  /// هذا المؤشر ليس قياسًا حقيقيًا لصحة الجهاز أو أدائه.
   int calculateHealthScore() {
-    if (_totalFiles == 0) {
-      return 100;
-    }
-
-    // مؤشر توضيحي فقط؛ لا يُستخدم لتشخيص حالة الجهاز.
+    if (_totalFiles == 0) return 100;
     final int score = 100 - (_totalFiles ~/ 100);
     return score.clamp(0, 100);
   }
 
-  /// يحول عدد البايتات إلى صيغة مقروءة.
   static String formatBytes(int bytes) {
-    if (bytes < 0) {
-      return 'غير معروف';
-    }
-
-    if (bytes < 1024) {
-      return '$bytes B';
-    }
-
+    if (bytes < 0) return 'غير معروف';
+    if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) {
       return '${(bytes / 1024).toStringAsFixed(2)} KB';
     }
-
     if (bytes < 1024 * 1024 * 1024) {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
     }
-
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
   }
 }
