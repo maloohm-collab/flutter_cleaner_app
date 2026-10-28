@@ -41,7 +41,7 @@ class ProgressRing extends StatelessWidget {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.shield_moon_outlined, color: AppColors.primary, size: 18),
+                      Icon(Icons.security_rounded, color: AppColors.primary, size: 18),
                       SizedBox(width: 7),
                       Flexible(
                         child: Text(
@@ -97,7 +97,6 @@ class ProgressRing extends StatelessWidget {
                   child: CircularProgressIndicator(
                     value: value,
                     strokeWidth: 8,
-                    strokeCap: StrokeCap.round,
                     backgroundColor: const Color(0xFF2A3A52),
                     valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
                   ),
