@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,15 +17,15 @@ class ActivationScreen extends StatefulWidget {
 
 class _ActivationScreenState extends State<ActivationScreen> {
   final _codeController = TextEditingController();
+  final _phoneController = TextEditingController();
   bool _isActivating = false;
 
-  static const String _activationCode = 'AICLEANER0000';
-  static const int _subscriptionDays = 30;
   static const String _whatsAppNumber = '962780494789';
 
   @override
   void dispose() {
     _codeController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -42,34 +43,53 @@ class _ActivationScreenState extends State<ActivationScreen> {
 
   Future<void> _activate() async {
     if (_isActivating) return;
-    if (_codeController.text.trim().toUpperCase() != _activationCode) {
+    final phone = _phoneController.text.trim();
+    final code = _codeController.text.trim().toUpperCase();
+    if (phone.isEmpty || code.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('رمز التفعيل غير صحيح.')),
+        const SnackBar(content: Text('أدخل رقم الهاتف ورمز التفعيل.')),
       );
       return;
     }
 
     setState(() => _isActivating = true);
     try {
+      final callable = FirebaseFunctions.instance.httpsCallable('redeemActivationCode');
+      final response = await callable.call(<String, dynamic>{
+        'phone': phone,
+        'code': code,
+      });
+      final data = Map<String, dynamic>.from(response.data as Map);
+      if (data['success'] != true || data['expiresAt'] is! String) {
+        throw StateError('Invalid activation response');
+      }
+      final expiry = DateTime.parse(data['expiresAt'] as String);
       final prefs = await SharedPreferences.getInstance();
-      final now = DateTime.now();
-      final expiry = now.add(const Duration(days: _subscriptionDays));
-      await prefs.setInt('subscription_activated_at_ms', now.millisecondsSinceEpoch);
+      await prefs.setString('subscription_phone', phone);
+      await prefs.setInt('subscription_activated_at_ms', DateTime.now().millisecondsSinceEpoch);
       await prefs.setInt('subscription_expiry_ms', expiry.millisecondsSinceEpoch);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('تم التفعيل بنجاح لمدة 30 يومًا، حتى ${expiry.day}/${expiry.month}/${expiry.year}.'),
+          content: Text('تم التحقق من الاشتراك وتفعيله حتى ${expiry.day}/${expiry.month}/${expiry.year}.'),
         ),
       );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
+    } on FirebaseFunctionsException catch (error) {
+      if (!mounted) return;
+      final message = error.code == 'resource-exhausted'
+          ? 'تم تجاوز عدد المحاولات. حاول بعد ساعة.'
+          : error.code == 'failed-precondition'
+              ? 'رمز التفعيل غير صحيح أو سبق استخدامه.'
+              : 'تعذر التحقق من الاشتراك. تحقق من الاتصال وحاول مجددًا.';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تعذر حفظ التفعيل. حاول مرة أخرى.')),
+        const SnackBar(content: Text('تعذر إكمال التفعيل. حاول مرة أخرى.')),
       );
     } finally {
       if (mounted) setState(() => _isActivating = false);
@@ -116,11 +136,29 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         ),
                         const SizedBox(height: 20),
                         const Text(
-                          'أدخل رمز التفعيل الذي حصلت عليه من فريق الدعم.',
+                          'أدخل رقم الهاتف الذي تم ربط الاشتراك به، ورمز التفعيل الذي استلمته بعد الدفع.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.orangeAccent, fontSize: 12, height: 1.45),
                         ),
                         const SizedBox(height: 20),
+                        TextField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          autocorrect: false,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            labelText: 'رقم الهاتف الأردني',
+                            hintText: '07XXXXXXXX',
+                            prefixIcon: const Icon(Icons.phone_android, color: AppColors.primary),
+                            filled: true,
+                            fillColor: AppColors.field,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
                         TextField(
                           controller: _codeController,
                           textCapitalization: TextCapitalization.characters,
