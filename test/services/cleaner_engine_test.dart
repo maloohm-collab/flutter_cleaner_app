@@ -65,6 +65,26 @@ void main() {
     expect(engine.lastDeletedBytes, 0);
   });
 
+  test('keeps only the 50 largest files, sorted by size descending', () async {
+    for (int i = 1; i <= 60; i++) {
+      await File('${storageRoot.path}/file_${i}.bin')
+          .writeAsBytes(List<int>.filled(i, 1));
+    }
+
+    await engine.scan();
+    final List<MapEntry<String, int>> largest = engine.largestAccessibleFiles;
+
+    expect(largest, hasLength(50));
+    expect(largest.first.value, 60);
+    expect(largest.last.value, 11);
+    final List<int> sizes = largest.map((entry) => entry.value).toList();
+    expect(sizes, orderedEquals(List<int>.from(sizes)..sort((a, b) => b - a)));
+
+    // A second scan must not accumulate results from the first one.
+    await engine.scan();
+    expect(engine.largestAccessibleFiles, hasLength(50));
+  });
+
   test('an empty individual selection never deletes the whole category', () async {
     final File tempFile = File('${storageRoot.path}/leave.tmp');
     await tempFile.writeAsString('leave me');
