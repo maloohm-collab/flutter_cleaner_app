@@ -1379,46 +1379,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildWideTool(
-    IconData icon,
-    String title,
-    String subtitle,
-    VoidCallback onTap,
-  ) {
-    return Material(
-      color: AppColors.card,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(children: [
-            Container(
-              padding: const EdgeInsets.all(11),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(.10),
-                borderRadius: BorderRadius.circular(13),
-              ),
-              child: Icon(icon, color: AppColors.primary, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4)),
-            ])),
-            const Icon(Icons.chevron_right_rounded, color: AppColors.primary),
-          ]),
-        ),
-      ),
-    );
-  }
-
   Widget _buildInteractiveTool(
     IconData icon,
     String label,
