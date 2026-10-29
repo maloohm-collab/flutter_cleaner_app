@@ -65,6 +65,8 @@ class DuplicateFileScanner {
             );
             if (type != FileSystemEntityType.file) continue;
             final size = await entity.length();
+            // الملفات الفارغة كلها متطابقة شكليًا ولا توفّر أي مساحة.
+            if (size == 0) continue;
             candidatesBySize.putIfAbsent(size, () => <File>[]).add(entity);
             visited++;
           } on FileSystemException {
