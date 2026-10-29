@@ -50,12 +50,30 @@ class CleanerEngine {
   int _videoBytes = 0;
   int _otherFiles = 0;
   int _otherBytes = 0;
-  final Map<String, int> _accessibleFileSizes = <String, int>{};
+  static const int _largestFilesLimit = 50;
 
-  List<MapEntry<String, int>> get largestAccessibleFiles {
-    final entries = _accessibleFileSizes.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    return List<MapEntry<String, int>>.unmodifiable(entries.take(50));
+  /// أكبر الملفات التي أمكن قراءتها، مرتبة تنازليًا بالحجم.
+  /// نحتفظ بأكبر [_largestFilesLimit] ملفًا فقط بدل تخزين كل مسار في الذاكرة.
+  final List<MapEntry<String, int>> _largestFiles = <MapEntry<String, int>>[];
+
+  List<MapEntry<String, int>> get largestAccessibleFiles =>
+      List<MapEntry<String, int>>.unmodifiable(_largestFiles);
+
+  void _trackLargestFile(String path, int bytes) {
+    if (_largestFiles.length >= _largestFilesLimit &&
+        bytes <= _largestFiles.last.value) {
+      return;
+    }
+
+    int index = _largestFiles.length;
+    while (index > 0 && _largestFiles[index - 1].value < bytes) {
+      index--;
+    }
+    _largestFiles.insert(index, MapEntry<String, int>(path, bytes));
+
+    if (_largestFiles.length > _largestFilesLimit) {
+      _largestFiles.removeLast();
+    }
   }
 
   static const Set<String> _imageExtensions = <String>{
@@ -111,7 +129,7 @@ class CleanerEngine {
     _videoBytes = 0;
     _otherFiles = 0;
     _otherBytes = 0;
-    _accessibleFileSizes.clear();
+    _largestFiles.clear();
 
     final Map<String, List<File>> groupedFiles = <String, List<File>>{
       'temporary_files': <File>[],
@@ -160,7 +178,7 @@ class CleanerEngine {
             continue;
           }
 
-          _accessibleFileSizes[entity.path] = fileBytes;
+          _trackLargestFile(entity.path, fileBytes);
           final String fileName = entity.path.toLowerCase().split('/').last;
           final int dot = fileName.lastIndexOf('.');
           final String extension = dot >= 0 ? fileName.substring(dot) : '';
