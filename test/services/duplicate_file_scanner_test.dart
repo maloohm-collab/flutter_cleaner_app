@@ -35,15 +35,13 @@ void main() {
     expect(groups.single.reclaimableBytes, 4);
   });
 
-  test('reports empty files as duplicates when contents match', () async {
+  test('ignores empty files because they free no space', () async {
     await writeFile('empty/a.tmp', <int>[]);
     await writeFile('empty/b.tmp', <int>[]);
 
     final groups = await DuplicateFileScanner(storageRoot: tempRoot.path).scan();
 
-    expect(groups, hasLength(1));
-    expect(groups.single.bytes, 0);
-    expect(groups.single.paths, hasLength(2));
+    expect(groups, isEmpty);
   });
 
   test('excludes Android data and obb folders', () async {
