@@ -1,5 +1,3 @@
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,7 +7,6 @@ import 'utils/colors.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
   runApp(const CleanerApp());
 }
 
@@ -38,7 +35,11 @@ class CleanerApp extends StatelessWidget {
         ),
         snackBarTheme: SnackBarThemeData(
           backgroundColor: const Color(0xFF172A45),
-          contentTextStyle: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+          contentTextStyle: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -62,35 +63,15 @@ class _StartupGateState extends State<StartupGate> {
 
   Future<bool> _checkActivation() async {
     final prefs = await SharedPreferences.getInstance();
-    final phone = prefs.getString('subscription_phone');
-    if (phone == null || phone.trim().isEmpty) return false;
+    final expiry = prefs.getInt('subscription_expiry_ms');
+    if (expiry == null) return false;
 
-    try {
-      final response = await FirebaseFunctions.instance
-          .httpsCallable('checkSubscription')
-          .call(<String, dynamic>{'phone': phone});
-      final data = Map<String, dynamic>.from(response.data as Map);
-      if (data['active'] != true || data['expiresAt'] is! String) {
-        await prefs.remove('subscription_expiry_ms');
-        await prefs.remove('subscription_activated_at_ms');
-        await prefs.remove('subscription_phone');
-        return false;
-      }
-
-      final expiry = DateTime.parse(data['expiresAt'] as String);
-      await prefs.setInt('subscription_expiry_ms', expiry.millisecondsSinceEpoch);
-      return expiry.isAfter(DateTime.now());
-    } on FirebaseFunctionsException {
-      // Keep a previously verified, unexpired subscription available during
-      // temporary network/backend outages; never grant access without a cache.
-      final cachedExpiry = prefs.getInt('subscription_expiry_ms');
-      return cachedExpiry != null &&
-          DateTime.now().millisecondsSinceEpoch < cachedExpiry;
-    } catch (_) {
-      final cachedExpiry = prefs.getInt('subscription_expiry_ms');
-      return cachedExpiry != null &&
-          DateTime.now().millisecondsSinceEpoch < cachedExpiry;
+    if (DateTime.now().millisecondsSinceEpoch >= expiry) {
+      await prefs.remove('subscription_expiry_ms');
+      await prefs.remove('subscription_activated_at_ms');
+      return false;
     }
+    return true;
   }
 
   @override
