@@ -188,6 +188,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: AppColors.border),
         ),
-        child: child,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Material(
+            color: AppColors.card,
+            child: child,
+          ),
+        ),
       );
 }
