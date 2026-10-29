@@ -56,7 +56,7 @@ jobs:
       - name: Install function dependencies
         if: ${{ inputs.deploy_functions == 'yes' }}
         working-directory: firebase/functions
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Deploy Cloud Functions
         if: ${{ inputs.deploy_functions == 'yes' }}
