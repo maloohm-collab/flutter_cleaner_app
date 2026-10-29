@@ -4,6 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/colors.dart';
 import 'activation_screen.dart';
 
+String subscriptionRemainingLabel(int daysLeft) {
+  if (daysLeft <= 0) return 'ينتهي اليوم';
+  if (daysLeft == 1) return 'متبقٍ يوم واحد';
+  if (daysLeft == 2) return 'متبقٍ يومان';
+  if (daysLeft <= 10) return 'متبقٍ ${daysLeft} أيام';
+  return 'متبقٍ ${daysLeft} يومًا';
+}
+
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -14,6 +22,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _loadingSubscription = true;
   DateTime? _expiry;
+  DateTime? _activatedAt;
 
   @override
   void initState() {
@@ -24,13 +33,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSubscription() async {
     final prefs = await SharedPreferences.getInstance();
     final expiryMs = prefs.getInt('subscription_expiry_ms');
+    final activatedMs = prefs.getInt('subscription_activated_at_ms');
     if (!mounted) return;
     setState(() {
       _expiry = expiryMs == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(expiryMs);
+      _activatedAt = activatedMs == null ? null : DateTime.fromMillisecondsSinceEpoch(activatedMs);
       _loadingSubscription = false;
     });
+  }
+
+  double? _remainingFraction() {
+    final expiry = _expiry;
+    final activated = _activatedAt;
+    if (expiry == null || activated == null) return null;
+    final total = expiry.difference(activated).inSeconds;
+    if (total <= 0) return null;
+    final remaining = expiry.difference(DateTime.now()).inSeconds;
+    return (remaining / total).clamp(0.0, 1.0).toDouble();
   }
 
   String _formatDate(DateTime value) =>
@@ -44,7 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: AppColors.card,
         title: const Text('تسجيل الخروج', style: TextStyle(color: Colors.white)),
         content: const Text(
-          'سيتم إنهاء جلسة هذا الجهاز وإزالة حالة التفعيل المحلية. يمكنك العودة باستخدام رقم الهاتف نفسه ورمز التفعيل الأصلي ما دام الاشتراك ساريًا.',
+          'سيتم إنهاء التفعيل على هذا الجهاز وإزالة حالته المحلية. ستحتاج إلى إدخال رمز التفعيل مرة أخرى للمتابعة.',
           style: TextStyle(color: Colors.white70, height: 1.5),
         ),
         actions: [
@@ -99,13 +120,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Icon(Icons.workspace_premium_outlined, color: AppColors.primary),
                   ),
                   title: const Text('حالة الاشتراك', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                  subtitle: Text(
-                    _loadingSubscription
-                        ? 'جارٍ التحقق...'
-                        : active
-                            ? 'اشتراك تم التحقق منه حتى ${_formatDate(_expiry!)}'
-                            : 'لا يوجد تفعيل محلي على هذا الجهاز',
-                    style: TextStyle(color: active ? AppColors.success : AppColors.warning, height: 1.5),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _loadingSubscription
+                            ? 'جارٍ التحقق...'
+                            : active
+                                ? 'مفعّل حتى ${_formatDate(_expiry!)}'
+                                : 'لا يوجد تفعيل محلي على هذا الجهاز',
+                        style: TextStyle(color: active ? AppColors.success : AppColors.warning, height: 1.5),
+                      ),
+                      if (active) ...[
+                        Text(subscriptionRemainingLabel(_expiry!.difference(DateTime.now()).inDays), style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.5)),
+                        if (_remainingFraction() != null) ...[
+                          const SizedBox(height: 8),
+                          ClipRRect(borderRadius: BorderRadius.circular(6), child: LinearProgressIndicator(value: _remainingFraction(), minHeight: 6, backgroundColor: AppColors.border, valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success))),
+                        ],
+                      ],
+                    ],
                   ),
                 ),
                 const Divider(color: AppColors.border, height: 1),
